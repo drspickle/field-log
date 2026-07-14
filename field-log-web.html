@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FIELD LOG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#14181b;
+    --panel:#1b2023;
+    --panel-2:#20262a;
+    --line:#2c3337;
+    --text:#e8e6de;
+    --text-dim:#8b9198;
+    --amber:#e8a33d;
+    --amber-dim:#8a6526;
+    --olive:#5c7a68;
+    --rust:#c1523a;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif;
+    min-height:100vh;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    z-index:0;
+    pointer-events:none;
+    opacity:0.05;
+    background-image:
+      repeating-radial-gradient(circle at 20% 30%, transparent 0, transparent 40px, var(--olive) 41px, transparent 42px),
+      repeating-radial-gradient(circle at 85% 75%, transparent 0, transparent 60px, var(--olive) 61px, transparent 62px);
+  }
+  .wrap{position:relative;z-index:1;max-width:960px;margin:0 auto;padding:0 20px 60px;}
+
+  /* ---------- Gate screens ---------- */
+  .gate{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:22px;
+    text-align:center;
+    padding:20px;
+  }
+  .gate-mark{
+    font-family:'IBM Plex Mono',monospace;
+    color:var(--amber);
+    font-size:12px;
+    letter-spacing:3px;
+    text-transform:uppercase;
+  }
+  .gate h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:28px;
+    letter-spacing:2px;
+    text-transform:uppercase;
+    margin:0;
+    color:var(--text);
+  }
+  .gate input{
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:18px;
+    letter-spacing:4px;
+    text-align:center;
+    padding:14px 16px;
+    border-radius:2px;
+    width:220px;
+    outline:none;
+  }
+  .gate input:focus{border-color:var(--amber);}
+  .gate button{
+    background:var(--amber);
+    color:#1b1000;
+    border:none;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    font-size:13px;
+    padding:12px 28px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .gate button:hover{background:#f0b158;}
+  .gate .err{
+    color:var(--rust);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:1px;
+    min-height:16px;
+  }
+  .gate .hint{
+    color:var(--text-dim);
+    font-size:12px;
+    max-width:320px;
+    line-height:1.5;
+  }
+  .shake{animation:shake 0.3s;}
+  @keyframes shake{
+    0%,100%{transform:translateX(0);}
+    25%{transform:translateX(-8px);}
+    75%{transform:translateX(8px);}
+  }
+
+  /* ---------- Header ---------- */
+  header{
+    padding:28px 0 18px;
+    border-bottom:1px solid var(--line);
+    margin-bottom:24px;
+  }
+  .callsign{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:3px;
+    color:var(--amber);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  header h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:26px;
+    letter-spacing:1px;
+    margin:0 0 14px;
+    text-transform:uppercase;
+  }
+  .readout{
+    display:flex;
+    flex-wrap:wrap;
+    gap:0;
+    border:1px solid var(--line);
+    border-radius:3px;
+    overflow:hidden;
+  }
+  .readout-cell{
+    flex:1;
+    min-width:110px;
+    padding:10px 14px;
+    border-right:1px solid var(--line);
+  }
+  .readout-cell:last-child{border-right:none;}
+  .readout-label{
+    font-size:10px;
+    letter-spacing:1.5px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    margin-bottom:4px;
+  }
+  .readout-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:16px;
+    color:var(--text);
+  }
+  .readout-value.hot{color:var(--amber);}
+
+  /* ---------- Tabs ---------- */
+  .tabs{
+    display:flex;
+    gap:2px;
+    margin-bottom:24px;
+    border-bottom:1px solid var(--line);
+  }
+  .tab{
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    background:none;
+    border:none;
+    padding:10px 4px;
+    margin-right:24px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .tab.active{color:var(--amber);border-bottom-color:var(--amber);}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  /* ---------- Cards ---------- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:14px;
+    margin-bottom:28px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:16px 18px;
+  }
+  .card-label{
+    font-size:10px;
+    letter-spacing:1.5px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    margin-bottom:8px;
+  }
+  .card-value{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:26px;
+    color:var(--text);
+  }
+  .card-value span{font-size:14px;color:var(--text-dim);margin-left:4px;}
+
+  .section-title{
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--text);
+    margin:0 0 14px;
+    padding-bottom:8px;
+    border-bottom:1px solid var(--line);
+  }
+  .chart-box{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:18px;
+    margin-bottom:20px;
+    height:260px;
+  }
+
+  /* ---------- Forms ---------- */
+  .form-toggle{
+    display:flex;
+    gap:8px;
+    margin-bottom:18px;
+  }
+  .form-toggle button{
+    flex:1;
+    background:var(--panel);
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    font-family:'Oswald',sans-serif;
+    letter-spacing:1px;
+    text-transform:uppercase;
+    font-size:12px;
+    padding:10px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .form-toggle button.active{background:var(--amber-dim);color:var(--amber);border-color:var(--amber);}
+  .form-toggle button:disabled{opacity:0.35;cursor:not-allowed;}
+  .entry-form{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:20px;
+    display:none;
+  }
+  .entry-form.active{display:block;}
+  .dropzone{
+    border:1px dashed var(--line);
+    border-radius:3px;
+    padding:18px;
+    text-align:center;
+    margin-bottom:16px;
+    cursor:pointer;
+    color:var(--text-dim);
+    font-size:13px;
+    transition:border-color 0.15s, color 0.15s;
+  }
+  .dropzone:hover, .dropzone.drag-over{border-color:var(--amber);color:var(--amber);}
+  .dropzone.busy{border-color:var(--olive);color:var(--olive);}
+  .dropzone .dz-sub{font-size:11px;color:var(--text-dim);margin-top:4px;}
+  .dropzone img{max-height:80px;border-radius:2px;margin-bottom:8px;}
+  .dz-status{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    margin-top:8px;
+    min-height:14px;
+  }
+  .dz-status.err{color:var(--rust);}
+  .dz-status.ok{color:var(--olive);}
+  .preset-chip{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:6px 10px 6px 12px;
+    border-radius:14px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+  }
+  .preset-chip:hover{border-color:var(--amber);color:var(--amber);}
+  .preset-chip .chip-x{
+    color:var(--text-dim);
+    font-size:13px;
+    line-height:1;
+    padding:2px 4px;
+  }
+  .preset-chip .chip-x:hover{color:var(--rust);}
+  #preset-name-input{
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:13px;
+    padding:0 12px;
+    border-radius:2px;
+  }
+  .field-row{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+    gap:14px;
+    margin-bottom:14px;
+  }
+  label{
+    display:block;
+    font-size:11px;
+    letter-spacing:1px;
+    color:var(--text-dim);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  input,select,textarea{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:14px;
+    padding:9px 10px;
+    border-radius:2px;
+    outline:none;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--amber);}
+  textarea{resize:vertical;min-height:60px;}
+  .submit-btn{
+    background:var(--amber);
+    color:#1b1000;
+    border:none;
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    font-size:13px;
+    padding:11px 24px;
+    border-radius:2px;
+    cursor:pointer;
+    width:100%;
+  }
+  .submit-btn:hover{background:#f0b158;}
+  .save-msg{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--olive);
+    margin-top:10px;
+    min-height:16px;
+  }
+
+  /* ---------- History ---------- */
+  .entry{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:3px;
+    padding:14px 16px;
+    margin-bottom:10px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+  }
+  .entry-main{flex:1;}
+  .entry-type{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:1.5px;
+    text-transform:uppercase;
+    color:var(--amber);
+    margin-bottom:3px;
+  }
+  .entry-detail{font-size:13px;color:var(--text-dim);}
+  .entry-date{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--text-dim);
+    white-space:nowrap;
+  }
+  .del-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    font-size:11px;
+    padding:6px 10px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .del-btn:hover{border-color:var(--rust);color:var(--rust);}
+  .empty-state{
+    color:var(--text-dim);
+    font-size:13px;
+    padding:30px 0;
+    text-align:center;
+  }
+  .loading{
+    text-align:center;
+    color:var(--text-dim);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:40px 0;
+  }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script>
+(function(){
+
+  // ---------- Supabase configuration ----------
+  // Fill these in from your Supabase project: Settings > API
+  var SUPABASE_URL = 'https://nbbooydgsrririeranjh.supabase.co';
+  var SUPABASE_ANON_KEY = 'sb_publishable_j6z9LiQMoTIs62Ry9v6Rpw_zu1NnyEj';
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  var root = document.getElementById('root');
+  var state = {
+    unlocked: false,
+    configLoaded: false,
+    authError: '',
+    entries: [],
+    diet: [],
+    dietPresets: [],
+    activeTab: 'overview',
+    formType: 'cardio',
+    editing: null,
+    historyFilter: 'all'
+  };
+
+  function render(){
+    if(!state.configLoaded){
+      root.innerHTML = '<div class="loading">LOADING...</div>';
+      return;
+    }
+    if(!state.unlocked){
+      renderGate();
+      return;
+    }
+    renderDashboard();
+  }
+
+  // ---------- Auth + data loading ----------
+  async function init(){
+    var { data } = await sb.auth.getSession();
+    if(data && data.session){
+      state.unlocked = true;
+      await loadAllData();
+    }
+    state.configLoaded = true;
+    render();
+
+    sb.auth.onAuthStateChange(function(event, session){
+      if(event === 'SIGNED_OUT'){
+        state.unlocked = false;
+        state.entries = [];
+        state.diet = [];
+        state.dietPresets = [];
+        render();
+      }
+    });
+  }
+
+  async function loadAllData(){
+    var [entriesRes, dietRes, presetsRes] = await Promise.all([
+      sb.from('entries').select('*').order('date', { ascending: false }),
+      sb.from('diet').select('*').order('date', { ascending: false }),
+      sb.from('diet_presets').select('*').order('created_at', { ascending: true })
+    ]);
+    state.entries = (entriesRes.data || []).map(rowToEntry);
+    state.diet = (dietRes.data || []).map(rowToDiet);
+    state.dietPresets = (presetsRes.data || []).map(function(r){ return { id: r.id, name: r.name, food: r.food }; });
+  }
+
+  function rowToEntry(row){
+    return Object.assign({ id: row.id, type: row.type, date: row.date }, row.payload || {});
+  }
+  function rowToDiet(row){
+    return Object.assign({ id: row.id, date: row.date }, row.payload || {});
+  }
+  function entryToPayload(entry){
+    var p = {};
+    Object.keys(entry).forEach(function(k){ if(k !== 'id' && k !== 'type' && k !== 'date') p[k] = entry[k]; });
+    return p;
+  }
+
+  // ---------- Data mutation helpers (Supabase CRUD) ----------
+  async function insertEntry(type, date, payload){
+    var { data, error } = await sb.from('entries').insert({ type: type, date: date, payload: payload }).select().single();
+    if(error) throw error;
+    return rowToEntry(data);
+  }
+  async function updateEntryRow(id, type, date, payload){
+    var { data, error } = await sb.from('entries').update({ type: type, date: date, payload: payload }).eq('id', id).select().single();
+    if(error) throw error;
+    return rowToEntry(data);
+  }
+  async function deleteEntryRow(id){
+    var { error } = await sb.from('entries').delete().eq('id', id);
+    if(error) throw error;
+  }
+  async function insertDiet(date, payload){
+    var { data, error } = await sb.from('diet').insert({ date: date, payload: payload }).select().single();
+    if(error) throw error;
+    return rowToDiet(data);
+  }
+  async function updateDietRow(id, date, payload){
+    var { data, error } = await sb.from('diet').update({ date: date, payload: payload }).eq('id', id).select().single();
+    if(error) throw error;
+    return rowToDiet(data);
+  }
+  async function deleteDietRow(id){
+    var { error } = await sb.from('diet').delete().eq('id', id);
+    if(error) throw error;
+  }
+  async function insertPreset(name, food){
+    var { data, error } = await sb.from('diet_presets').insert({ name: name, food: food }).select().single();
+    if(error) throw error;
+    return { id: data.id, name: data.name, food: data.food };
+  }
+  async function deletePresetRow(id){
+    var { error } = await sb.from('diet_presets').delete().eq('id', id);
+    if(error) throw error;
+  }
+
+  // ---------- Gate (real Supabase email/password auth) ----------
+  function renderGate(){
+    root.innerHTML =
+      '<div class="gate">' +
+        '<div class="gate-mark">RESTRICTED ACCESS</div>' +
+        '<h1>Field Log</h1>' +
+        '<input id="gate-email" type="email" placeholder="EMAIL" autocomplete="username" style="letter-spacing:1px;">' +
+        '<input id="gate-input" type="password" placeholder="PASSWORD" autocomplete="current-password">' +
+        '<button id="gate-btn">Sign In</button>' +
+        '<div class="err" id="gate-err"></div>' +
+        '<div class="hint">Signed in with a real Supabase account. Sessions persist in this browser until you sign out.</div>' +
+      '</div>';
+
+    var emailInput = document.getElementById('gate-email');
+    var input = document.getElementById('gate-input');
+    var btn = document.getElementById('gate-btn');
+    emailInput.focus();
+
+    function attempt(){
+      var email = emailInput.value.trim();
+      var pass = input.value;
+      if(!email || !pass){ showErr('Enter your email and password.'); return; }
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+      sb.auth.signInWithPassword({ email: email, password: pass }).then(function(res){
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        if(res.error){
+          showErr(res.error.message || 'Sign-in failed.');
+          return;
+        }
+        state.unlocked = true;
+        loadAllData().then(render);
+      }).catch(function(err){
+        btn.disabled = false;
+        btn.textContent = 'Sign In';
+        showErr(err && err.message ? err.message : 'Sign-in failed.');
+      });
+    }
+    function showErr(msg){
+      document.getElementById('gate-err').textContent = msg;
+      var gateEl = document.querySelector('.gate');
+      gateEl.classList.add('shake');
+      setTimeout(function(){ gateEl.classList.remove('shake'); }, 300);
+    }
+    btn.addEventListener('click', attempt);
+    input.addEventListener('keydown', function(e){ if(e.key === 'Enter') attempt(); });
+    emailInput.addEventListener('keydown', function(e){ if(e.key === 'Enter') input.focus(); });
+  }
+
+  // ---------- Helpers for dashboard math ----------
+  function parseLocalDate(dateStr){
+    if(!dateStr) return new Date(NaN);
+    var parts = dateStr.split('-');
+    return new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10));
+  }
+  function localDateStr(d){
+    d = d || new Date();
+    var y = d.getFullYear(), m = d.getMonth()+1, day = d.getDate();
+    return y + '-' + (m<10?'0':'') + m + '-' + (day<10?'0':'') + day;
+  }
+  function daysAgo(n){
+    var d = new Date();
+    d.setHours(0,0,0,0);
+    d.setDate(d.getDate() - n);
+    return d;
+  }
+  function isWithinDays(dateStr, n){
+    var d = parseLocalDate(dateStr);
+    return d >= daysAgo(n);
+  }
+  function isToday(dateStr){
+    var d = parseLocalDate(dateStr);
+    var t = new Date();
+    return d.getFullYear() === t.getFullYear() && d.getMonth() === t.getMonth() && d.getDate() === t.getDate();
+  }
+  function fmtDate(dateStr){
+    var d = parseLocalDate(dateStr);
+    return (d.getMonth()+1) + '/' + d.getDate();
+  }
+  function weekLabel(offset){
+    var d = daysAgo(offset*7);
+    return (d.getMonth()+1) + '/' + d.getDate();
+  }
+  async function commitEntry(arrName, entryData){
+    var arr = state[arrName];
+    if(state.editing && state.editing.arr === arrName){
+      var id = state.editing.id;
+      var savedRow = (arrName === 'entries')
+        ? await updateEntryRow(id, entryData.type, entryData.date, entryToPayload(entryData))
+        : await updateDietRow(id, entryData.date, entryToPayload(entryData));
+      var idx = arr.findIndex(function(x){ return x.id === id; });
+      if(idx !== -1){ arr[idx] = savedRow; } else { arr.push(savedRow); }
+      state.editing = null;
+      return true;
+    }
+    var newRow = (arrName === 'entries')
+      ? await insertEntry(entryData.type, entryData.date, entryToPayload(entryData))
+      : await insertDiet(entryData.date, entryToPayload(entryData));
+    arr.push(newRow);
+    return false;
+  }
+
+  function startEdit(kind, id){
+    var arrName = kind === 'diet' ? 'diet' : 'entries';
+    var entry = state[arrName].find(function(e){ return e.id === id; });
+    if(!entry) return;
+    state.editing = { arr: arrName, id: id };
+    state.formType = kind === 'diet' ? 'diet' : entry.type;
+    state.activeTab = 'log';
+    updateTabs();
+  }
+
+  function epley1RM(weight, reps){
+    var w = parseFloat(weight), r = parseFloat(reps);
+    if(!w || !r) return null;
+    return w * (1 + r/30);
+  }
+
+  function computeStats(){
+    var zone2Minutes = state.entries.filter(function(e){
+      return e.type === 'cardio' && isWithinDays(e.date, 7);
+    }).reduce(function(sum, e){
+      var avg = parseFloat(e.avgHR);
+      if(avg >= 127 && avg <= 154){ return sum + (parseFloat(e.duration)||0); }
+      return sum;
+    }, 0);
+    var vo2Entries = state.entries.filter(function(e){ return e.type === 'vo2max'; })
+      .sort(function(a,b){ return parseLocalDate(a.date) - parseLocalDate(b.date); });
+    var latestVo2 = vo2Entries.length ? vo2Entries[vo2Entries.length-1].value : null;
+
+    var strengthTestEntries = state.entries.filter(function(e){ return e.type === 'strength_test'; })
+      .sort(function(a,b){ return parseLocalDate(a.date) - parseLocalDate(b.date); });
+    var latest1RM = strengthTestEntries.length ? epley1RM(strengthTestEntries[strengthTestEntries.length-1].weight, strengthTestEntries[strengthTestEntries.length-1].reps) : null;
+
+    var todayDiet = state.diet.filter(function(e){ return isToday(e.date); });
+    var todayCalories = todayDiet.reduce(function(sum, e){ return sum + (parseFloat(e.calories)||0); }, 0);
+    var todayProtein = todayDiet.reduce(function(sum, e){ return sum + (parseFloat(e.protein)||0); }, 0);
+
+    return {
+      zone2Minutes: Math.round(zone2Minutes),
+      latestVo2: latestVo2,
+      vo2Entries: vo2Entries,
+      latest1RM: latest1RM,
+      strengthTestEntries: strengthTestEntries,
+      todayCalories: Math.round(todayCalories),
+      todayProtein: Math.round(todayProtein),
+      todayDietCount: todayDiet.length
+    };
+  }
+
+  function weeklyZone2Series(weeks){
+    var buckets = [];
+    for(var i = weeks-1; i >= 0; i--){
+      var start = daysAgo((i+1)*7);
+      var end = daysAgo(i*7);
+      var total = state.entries.filter(function(e){
+        var d = parseLocalDate(e.date);
+        return e.type === 'cardio' && d >= start && d < end;
+      }).reduce(function(sum, e){
+        var avg = parseFloat(e.avgHR);
+        if(avg >= 127 && avg <= 154){ return sum + (parseFloat(e.duration)||0); }
+        return sum;
+      }, 0);
+      buckets.push({ label: weekLabel(i), value: Math.round(total) });
+    }
+    return buckets;
+  }
+
+  // ---------- Dashboard shell ----------
+  var charts = {};
+
+  function renderDashboard(){
+    var stats = computeStats();
+    root.innerHTML =
+      '<div class="wrap">' +
+        '<header>' +
+          '<div class="callsign" style="display:flex;justify-content:space-between;align-items:center;">' +
+            '<span>Brian Helton &middot; Personal Telemetry</span>' +
+            '<button id="sign-out-btn" style="background:none;border:1px solid var(--line);color:var(--text-dim);border-radius:2px;padding:4px 10px;font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Sign Out</button>' +
+          '</div>' +
+          '<h1>Field Log</h1>' +
+          '<div class="readout">' +
+            '<div class="readout-cell"><div class="readout-label">Zone 2 Min (7d)</div><div class="readout-value hot">' + stats.zone2Minutes + '</div></div>' +
+            '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div></div>' +
+            '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div></div>' +
+          '</div>' +
+        '</header>' +
+        '<div class="tabs">' +
+          '<button class="tab" data-tab="overview">Overview</button>' +
+          '<button class="tab" data-tab="log">Log Entry</button>' +
+          '<button class="tab" data-tab="history">History</button>' +
+        '</div>' +
+        '<div class="panel" id="panel-overview"></div>' +
+        '<div class="panel" id="panel-log"></div>' +
+        '<div class="panel" id="panel-history"></div>' +
+      '</div>';
+
+    document.querySelectorAll('.tab').forEach(function(t){
+      t.addEventListener('click', function(){
+        state.activeTab = t.getAttribute('data-tab');
+        updateTabs();
+      });
+    });
+    document.getElementById('sign-out-btn').addEventListener('click', function(){
+      sb.auth.signOut().then(function(){
+        state.unlocked = false;
+        render();
+      });
+    });
+    updateTabs();
+  }
+
+  function updateTabs(){
+    document.querySelectorAll('.tab').forEach(function(t){
+      t.classList.toggle('active', t.getAttribute('data-tab') === state.activeTab);
+    });
+    document.getElementById('panel-overview').classList.toggle('active', state.activeTab === 'overview');
+    document.getElementById('panel-log').classList.toggle('active', state.activeTab === 'log');
+    document.getElementById('panel-history').classList.toggle('active', state.activeTab === 'history');
+
+    if(state.activeTab === 'overview') renderOverview();
+    if(state.activeTab === 'log') renderLog();
+    if(state.activeTab === 'history') renderHistory();
+  }
+
+  // ---------- Overview ----------
+  function renderOverview(){
+    var el = document.getElementById('panel-overview');
+    var statsData = computeStats();
+    el.innerHTML =
+      '<div class="section-title">Today&rsquo;s Nutrition</div>' +
+      '<div class="grid">' +
+        '<div class="card"><div class="card-label">Calories Today</div><div class="card-value">' + statsData.todayCalories + '<span>cal</span></div></div>' +
+        '<div class="card"><div class="card-label">Protein Today</div><div class="card-value">' + statsData.todayProtein + '<span>g</span></div></div>' +
+      '</div>' +
+      (statsData.todayDietCount === 0 ? '<div style="font-size:12px;color:var(--text-dim);margin:-14px 0 20px;">Nothing logged yet today.</div>' : '') +
+      '<div class="section-title">Cardiovascular Minutes / Week</div>' +
+      '<div class="chart-box"><canvas id="chart-zone2"></canvas></div>' +
+      '<div class="section-title">VO2 Max Trend</div>' +
+      '<div class="chart-box"><canvas id="chart-vo2"></canvas></div>' +
+      '<div class="section-title">Estimated 1RM Bench Trend</div>' +
+      '<div class="chart-box"><canvas id="chart-strength"></canvas></div>';
+
+    var z2 = weeklyZone2Series(8);
+    var vo2 = statsData.vo2Entries.slice(-10);
+    var strengthTests = statsData.strengthTestEntries.slice(-10);
+
+    if(charts.zone2) charts.zone2.destroy();
+    if(charts.vo2) charts.vo2.destroy();
+    if(charts.strength) charts.strength.destroy();
+
+    charts.zone2 = new Chart(document.getElementById('chart-zone2'), {
+      type: 'bar',
+      data: {
+        labels: z2.map(function(b){ return b.label; }),
+        datasets: [{ label: 'Zone 2 minutes', data: z2.map(function(b){ return b.value; }), backgroundColor: '#e8a33d' }]
+      },
+      options: chartOpts()
+    });
+
+    charts.vo2 = new Chart(document.getElementById('chart-vo2'), {
+      type: 'line',
+      data: {
+        labels: vo2.map(function(v){ return fmtDate(v.date); }),
+        datasets: [{ label: 'VO2 Max', data: vo2.map(function(v){ return v.value; }), borderColor: '#5c7a68', backgroundColor: '#5c7a68', tension: 0.3, pointRadius: 4 }]
+      },
+      options: chartOpts()
+    });
+
+    charts.strength = new Chart(document.getElementById('chart-strength'), {
+      type: 'line',
+      data: {
+        labels: strengthTests.map(function(v){ return fmtDate(v.date); }),
+        datasets: [{ label: 'Est. 1RM (lb)', data: strengthTests.map(function(v){ return Math.round(epley1RM(v.weight, v.reps)); }), borderColor: '#e8a33d', backgroundColor: '#e8a33d', tension: 0.3, pointRadius: 4 }]
+      },
+      options: chartOpts()
+    });
+  }
+
+  function chartOpts(){
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } },
+        y: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' }, beginAtZero: true }
+      }
+    };
+  }
+
+  // ---------- Log form ----------
+  function renderLog(){
+    var el = document.getElementById('panel-log');
+    el.innerHTML =
+      (state.editing ?
+        '<div style="background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber);border-radius:3px;padding:10px 14px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;font-size:13px;">' +
+          '<span>Editing existing entry.</span>' +
+          '<button type="button" id="cancel-edit-btn" style="background:none;border:1px solid var(--amber);color:var(--amber);border-radius:2px;padding:5px 12px;font-family:\'Oswald\',sans-serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Cancel</button>' +
+        '</div>'
+        : '') +
+      '<div class="form-toggle">' +
+        '<button data-ft="cardio" ' + (state.editing && state.formType!=='cardio' ? 'disabled' : '') + ' class="' + (state.formType==='cardio'?'active':'') + '">Cardio</button>' +
+        '<button data-ft="strength" ' + (state.editing && state.formType!=='strength' ? 'disabled' : '') + ' class="' + (state.formType==='strength'?'active':'') + '">Strength</button>' +
+        '<button data-ft="strength_test" ' + (state.editing && state.formType!=='strength_test' ? 'disabled' : '') + ' class="' + (state.formType==='strength_test'?'active':'') + '">Strength Test</button>' +
+        '<button data-ft="vo2max" ' + (state.editing && state.formType!=='vo2max' ? 'disabled' : '') + ' class="' + (state.formType==='vo2max'?'active':'') + '">VO2 Max</button>' +
+        '<button data-ft="diet" ' + (state.editing && state.formType!=='diet' ? 'disabled' : '') + ' class="' + (state.formType==='diet'?'active':'') + '">Diet</button>' +
+      '</div>' +
+
+      '<div class="entry-form ' + (state.formType==='cardio'?'active':'') + '" id="form-cardio" data-kind="cardio">' +
+        '<input type="file" id="shot-cardio" accept="image/png,image/jpeg,image/webp" style="display:none">' +
+        '<div class="dropzone" id="dz-cardio">' +
+          '<div>Drop a screenshot from your workout app here, or click to browse</div>' +
+          '<div class="dz-sub">Reads distance, duration, and heart rate automatically. Review before saving.</div>' +
+          '<div class="dz-status" id="dz-status-cardio"></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div><label>Date</label><input type="date" name="date" required></div>' +
+          '<div><label>Activity</label><select name="activity"><option>Run</option><option>Bike</option><option>Row</option><option>Hike</option><option>Other</option></select></div>' +
+          '<div><label>Duration (min)</label><input type="number" name="duration" min="0" required></div>' +
+        '</div>' +
+        '<div class="field-row">' +
+          '<div><label>Distance (mi)</label><input type="number" step="0.01" name="distance"></div>' +
+          '<div><label>Avg HR</label><input type="number" name="avgHR"></div>' +
+          '<div><label>Max HR</label><input type="number" name="maxHR"></div>' +
+          '<div><label>Calories</label><input type="number" name="calories"></div>' +
+        '</div>' +
+        '<div class="field-row"><div style="grid-column:1/-1"><label>Notes</label><textarea name="notes"></textarea></div></div>' +
+        '<button type="button" class="submit-btn" data-save="cardio">Log Cardio Session</button>' +
+        '<div class="save-msg" id="msg-cardio"></div>' +
+      '</div>' +
+
+      '<div class="entry-form ' + (state.formType==='strength'?'active':'') + '" id="form-strength" data-kind="strength">' +
+        '<div class="field-row">' +
+          '<div><label>Date</label><input type="date" name="date" required></div>' +
+          '<div><label>Duration (min)</label><input type="number" name="duration" min="0" required></div>' +
+          '<div><label>Focus</label><select name="focus"><option>Lower Body</option><option>Upper Body</option><option>Full Body</option><option>Stability</option></select></div>' +
+        '</div>' +
+        '<div class="field-row"><div style="grid-column:1/-1"><label>Notes (lifts, weights, reps)</label><textarea name="notes"></textarea></div></div>' +
+        '<button type="button" class="submit-btn" data-save="strength">Log Strength Session</button>' +
+        '<div class="save-msg" id="msg-strength"></div>' +
+      '</div>' +
+
+      '<div class="entry-form ' + (state.formType==='strength_test'?'active':'') + '" id="form-strength_test" data-kind="strength_test">' +
+        '<div class="field-row">' +
+          '<div><label>Date</label><input type="date" name="date" required></div>' +
+          '<div><label>Weight (lb)</label><input type="number" step="0.5" name="weight" required></div>' +
+          '<div><label>Reps</label><input type="number" name="reps" required></div>' +
+        '</div>' +
+        '<div class="field-row"><div><label>Estimated 1RM</label><div class="card-value" id="live-1rm" style="font-size:20px;">&mdash;</div></div></div>' +
+        '<button type="button" class="submit-btn" data-save="strength_test">Log Strength Test</button>' +
+        '<div class="save-msg" id="msg-strength_test"></div>' +
+      '</div>' +
+
+      '<div class="entry-form ' + (state.formType==='vo2max'?'active':'') + '" id="form-vo2max" data-kind="vo2max">' +
+        '<div class="field-row">' +
+          '<div><label>Date</label><input type="date" name="date" required></div>' +
+          '<div><label>VO2 Max Reading</label><input type="number" step="0.1" name="value" required></div>' +
+          '<div><label>Source</label><select name="source"><option>Apple Watch</option><option>Lab Test</option><option>Other</option></select></div>' +
+        '</div>' +
+        '<button type="button" class="submit-btn" data-save="vo2max">Log VO2 Max</button>' +
+        '<div class="save-msg" id="msg-vo2max"></div>' +
+      '</div>' +
+
+      '<div class="entry-form ' + (state.formType==='diet'?'active':'') + '" id="form-diet" data-kind="diet">' +
+        '<div class="field-row">' +
+          '<div><label>Date</label><input type="date" name="date" required></div>' +
+        '</div>' +
+        '<div class="field-row"><div style="grid-column:1/-1">' +
+          '<label>What did you eat</label>' +
+          '<textarea name="food" placeholder="e.g. 3 eggs, 2 slices whole wheat toast, 1 tbsp butter, black coffee"></textarea>' +
+        '</div></div>' +
+        '<div id="preset-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>' +
+        '<div style="display:flex;gap:8px;margin-bottom:16px;">' +
+          '<input type="text" id="preset-name-input" placeholder="Name this meal (e.g. Breakfast)" style="flex:1;">' +
+          '<button type="button" id="save-preset-btn" style="background:var(--panel-2);color:var(--text-dim);border:1px solid var(--line);border-radius:2px;padding:0 16px;font-family:\'Oswald\',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Save as Quick Meal</button>' +
+        '</div>' +
+        '<button type="button" class="submit-btn" id="estimate-diet-btn" style="background:var(--panel-2);color:var(--amber);border:1px solid var(--amber-dim);margin-bottom:16px;">Estimate Calories &amp; Protein</button>' +
+        '<div class="dz-status" id="diet-estimate-status"></div>' +
+        '<div id="diet-breakdown" style="margin-bottom:14px;"></div>' +
+        '<div class="field-row">' +
+          '<div><label>Calories</label><input type="number" name="calories"></div>' +
+          '<div><label>Protein (g)</label><input type="number" name="protein"></div>' +
+        '</div>' +
+        '<div class="field-row"><div style="grid-column:1/-1"><label>Notes (optional)</label><textarea name="notes"></textarea></div></div>' +
+        '<button type="button" class="submit-btn" data-save="diet">Log Diet Entry</button>' +
+        '<div class="save-msg" id="msg-diet"></div>' +
+      '</div>';
+
+    document.querySelectorAll('[data-ft]').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(b.disabled) return;
+        state.formType = b.getAttribute('data-ft');
+        renderLog();
+      });
+    });
+
+    var cancelBtn = document.getElementById('cancel-edit-btn');
+    if(cancelBtn){
+      cancelBtn.addEventListener('click', function(){
+        state.editing = null;
+        state.activeTab = 'history';
+        updateTabs();
+      });
+    }
+
+    var todayStr = localDateStr();
+    ['form-cardio','form-strength','form-strength_test','form-vo2max','form-diet'].forEach(function(id){
+      var f = document.getElementById(id);
+      var dateInput = f.querySelector('[name="date"]');
+      if(dateInput) dateInput.value = todayStr;
+    });
+
+    if(state.editing){
+      var editArr = state[state.editing.arr];
+      var editEntry = editArr.find(function(e){ return e.id === state.editing.id; });
+      if(editEntry){
+        var editFormId = 'form-' + state.formType;
+        var editContainer = document.getElementById(editFormId);
+        if(editContainer){
+          Object.keys(editEntry).forEach(function(key){
+            if(key === 'id' || key === 'type') return;
+            var fld = editContainer.querySelector('[name="' + key + '"]');
+            if(fld) fld.value = editEntry[key];
+          });
+          var editSaveBtn = editContainer.querySelector('[data-save]');
+          if(editSaveBtn) editSaveBtn.textContent = 'Update Entry';
+        }
+      } else {
+        state.editing = null;
+      }
+    }
+
+    function fieldVal(container, name){
+      var el = container.querySelector('[name="' + name + '"]');
+      return el ? el.value : '';
+    }
+    function clearFields(container){
+      container.querySelectorAll('input, textarea').forEach(function(el){
+        if(el.type === 'date'){ el.value = todayStr; }
+        else if(el.type !== 'file'){ el.value = ''; }
+      });
+      container.querySelectorAll('select').forEach(function(el){ el.selectedIndex = 0; });
+    }
+    function flashMsg(type, text, isErr){
+      var msg = document.getElementById('msg-' + type);
+      if(!msg) return;
+      msg.textContent = text;
+      msg.style.color = isErr ? 'var(--rust)' : 'var(--olive)';
+      setTimeout(function(){ if(msg) msg.textContent = ''; }, 2500);
+    }
+
+    document.getElementById('form-cardio').querySelector('[data-save="cardio"]').addEventListener('click', function(){
+      var c = document.getElementById('form-cardio');
+      if(!fieldVal(c,'date') || !fieldVal(c,'duration')){ flashMsg('cardio','Date and duration are required.', true); return; }
+      var entry = {
+        type: 'cardio', date: fieldVal(c,'date'), activity: fieldVal(c,'activity'),
+        duration: fieldVal(c,'duration'), distance: fieldVal(c,'distance'), avgHR: fieldVal(c,'avgHR'),
+        maxHR: fieldVal(c,'maxHR'), calories: fieldVal(c,'calories'), notes: fieldVal(c,'notes')
+      };
+      commitEntry('entries', entry).then(function(wasEditing){
+        if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
+        else { flashMsg('cardio','Saved.'); clearFields(c); }
+      }).catch(function(){ flashMsg('cardio','Save failed, try again.', true); });
+    });
+
+    document.getElementById('form-strength').querySelector('[data-save="strength"]').addEventListener('click', function(){
+      var c = document.getElementById('form-strength');
+      if(!fieldVal(c,'date') || !fieldVal(c,'duration')){ flashMsg('strength','Date and duration are required.', true); return; }
+      var entry = {
+        type: 'strength', date: fieldVal(c,'date'), duration: fieldVal(c,'duration'),
+        focus: fieldVal(c,'focus'), notes: fieldVal(c,'notes')
+      };
+      commitEntry('entries', entry).then(function(wasEditing){
+        if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
+        else { flashMsg('strength','Saved.'); clearFields(c); }
+      }).catch(function(){ flashMsg('strength','Save failed, try again.', true); });
+    });
+
+    var stForm = document.getElementById('form-strength_test');
+    var liveRM = document.getElementById('live-1rm');
+    function updateLiveRM(){
+      var rm = epley1RM(fieldVal(stForm,'weight'), fieldVal(stForm,'reps'));
+      liveRM.textContent = rm ? Math.round(rm) + ' lb' : '—';
+    }
+    stForm.querySelector('[name="weight"]').addEventListener('input', updateLiveRM);
+    stForm.querySelector('[name="reps"]').addEventListener('input', updateLiveRM);
+    if(state.editing && state.formType === 'strength_test') updateLiveRM();
+    stForm.querySelector('[data-save="strength_test"]').addEventListener('click', function(){
+      if(!fieldVal(stForm,'date') || !fieldVal(stForm,'weight') || !fieldVal(stForm,'reps')){ flashMsg('strength_test','Date, weight, and reps are required.', true); return; }
+      var entry = {
+        type: 'strength_test', date: fieldVal(stForm,'date'),
+        weight: fieldVal(stForm,'weight'), reps: fieldVal(stForm,'reps')
+      };
+      commitEntry('entries', entry).then(function(wasEditing){
+        if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
+        else { flashMsg('strength_test','Saved.'); clearFields(stForm); updateLiveRM(); }
+      }).catch(function(){ flashMsg('strength_test','Save failed, try again.', true); });
+    });
+
+    document.getElementById('form-vo2max').querySelector('[data-save="vo2max"]').addEventListener('click', function(){
+      var c = document.getElementById('form-vo2max');
+      if(!fieldVal(c,'date') || !fieldVal(c,'value')){ flashMsg('vo2max','Date and reading are required.', true); return; }
+      var entry = { type: 'vo2max', date: fieldVal(c,'date'), value: fieldVal(c,'value'), source: fieldVal(c,'source') };
+      commitEntry('entries', entry).then(function(wasEditing){
+        if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
+        else { flashMsg('vo2max','Saved.'); clearFields(c); }
+      }).catch(function(){ flashMsg('vo2max','Save failed, try again.', true); });
+    });
+
+    document.getElementById('form-diet').querySelector('[data-save="diet"]').addEventListener('click', function(){
+      var c = document.getElementById('form-diet');
+      if(!fieldVal(c,'date') || !fieldVal(c,'food')){ flashMsg('diet','Date and food description are required.', true); return; }
+      var entry = { food: fieldVal(c,'food'), date: fieldVal(c,'date'), calories: fieldVal(c,'calories'), protein: fieldVal(c,'protein'), notes: fieldVal(c,'notes') };
+      commitEntry('diet', entry).then(function(wasEditing){
+        if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
+        else {
+          flashMsg('diet','Saved.');
+          clearFields(c);
+          document.getElementById('diet-breakdown').innerHTML = '';
+          document.getElementById('diet-estimate-status').textContent = '';
+        }
+      }).catch(function(){ flashMsg('diet','Save failed, try again.', true); });
+    });
+
+    wireDropzone();
+    wireDietEstimate();
+  }
+
+  // ---------- Screenshot import (uses Anthropic API to read workout screenshots) ----------
+  function wireDropzone(){
+    var dz = document.getElementById('dz-cardio');
+    var fileInput = document.getElementById('shot-cardio');
+    if(!dz || !fileInput) return;
+
+    dz.addEventListener('click', function(){ fileInput.click(); });
+    fileInput.addEventListener('change', function(){
+      if(fileInput.files && fileInput.files[0]) handleShot(fileInput.files[0]);
+    });
+    dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
+    dz.addEventListener('drop', function(e){
+      e.preventDefault();
+      dz.classList.remove('drag-over');
+      if(e.dataTransfer.files && e.dataTransfer.files[0]) handleShot(e.dataTransfer.files[0]);
+    });
+
+    function setStatus(text, cls){
+      var s = document.getElementById('dz-status-cardio');
+      if(!s) return;
+      s.textContent = text;
+      s.className = 'dz-status' + (cls ? ' ' + cls : '');
+    }
+
+    function handleShot(file){
+      var mimeOk = ['image/png','image/jpeg','image/webp'].indexOf(file.type) !== -1;
+      if(!mimeOk){
+        setStatus('Unsupported file type. Use a PNG, JPG, or WEBP screenshot.', 'err');
+        return;
+      }
+      dz.classList.add('busy');
+      setStatus('Reading screenshot...');
+      var reader = new FileReader();
+      reader.onload = function(){
+        var base64 = reader.result.split(',')[1];
+        extractWorkoutData(base64, file.type).then(function(data){
+          fillCardioFields(data);
+          dz.classList.remove('busy');
+          setStatus('Extracted. Review the fields below, then save.', 'ok');
+        }).catch(function(err){
+          dz.classList.remove('busy');
+          setStatus('Could not read the screenshot. Enter the numbers manually.', 'err');
+          console.error(err);
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    async function extractWorkoutData(base64, mimeType){
+      var response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mimeType, data: base64 } },
+              { type: 'text', text: 'This is a screenshot from a fitness or workout app. Extract the workout summary data. Respond with ONLY a raw JSON object, no markdown fences, no preamble, matching exactly this shape: {"activity":"Run|Bike|Row|Hike|Other","duration":number or null (minutes),"distance":number or null (miles, convert from km if needed),"avgHR":number or null,"maxHR":number or null,"calories":number or null}. Use null for any field not visible in the image.' }
+            ]
+          }]
+        })
+      });
+      var data = await response.json();
+      var textBlock = (data.content || []).find(function(b){ return b.type === 'text'; });
+      if(!textBlock) throw new Error('No text in response');
+      var clean = textBlock.text.replace(/```json|```/g, '').trim();
+      return JSON.parse(clean);
+    }
+
+    function fillCardioFields(data){
+      var c = document.getElementById('form-cardio');
+      if(!data) return;
+      if(data.activity){
+        var sel = c.querySelector('[name="activity"]');
+        var opts = Array.prototype.map.call(sel.options, function(o){ return o.value; });
+        if(opts.indexOf(data.activity) !== -1) sel.value = data.activity;
+      }
+      if(data.duration !== null && data.duration !== undefined) c.querySelector('[name="duration"]').value = Math.round(data.duration);
+      if(data.distance !== null && data.distance !== undefined) c.querySelector('[name="distance"]').value = data.distance;
+      if(data.avgHR !== null && data.avgHR !== undefined) c.querySelector('[name="avgHR"]').value = Math.round(data.avgHR);
+      if(data.maxHR !== null && data.maxHR !== undefined) c.querySelector('[name="maxHR"]').value = Math.round(data.maxHR);
+      if(data.calories !== null && data.calories !== undefined) c.querySelector('[name="calories"]').value = Math.round(data.calories);
+    }
+  }
+
+  // ---------- Diet nutrition estimation (uses Anthropic API on the food description) ----------
+  function wireDietEstimate(){
+    var btn = document.getElementById('estimate-diet-btn');
+    var foodField = document.querySelector('#form-diet [name="food"]');
+    var statusEl = document.getElementById('diet-estimate-status');
+    var breakdownEl = document.getElementById('diet-breakdown');
+    if(!btn || !foodField) return;
+
+    renderPresetChips();
+
+    var nameInput = document.getElementById('preset-name-input');
+    var saveBtn = document.getElementById('save-preset-btn');
+    saveBtn.addEventListener('click', function(){
+      var name = nameInput.value.trim();
+      var food = foodField.value.trim();
+      if(!name){ nameInput.focus(); return; }
+      if(!food){ foodField.focus(); return; }
+      saveBtn.disabled = true;
+      insertPreset(name, food).then(function(preset){
+        state.dietPresets.push(preset);
+        nameInput.value = '';
+        saveBtn.disabled = false;
+        renderPresetChips();
+      }).catch(function(){ saveBtn.disabled = false; });
+    });
+    nameInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); saveBtn.click(); } });
+
+    function renderPresetChips(){
+      var container = document.getElementById('preset-chips');
+      if(!container) return;
+      if(!state.dietPresets.length){
+        container.innerHTML = '<div style="font-size:12px;color:var(--text-dim);">No quick meals saved yet. Type a meal above, name it, and save it for one-click logging next time.</div>';
+        return;
+      }
+      container.innerHTML = state.dietPresets.map(function(p){
+        return '<span class="preset-chip" data-preset="' + p.id + '">' + escapeHtml(p.name) + '<span class="chip-x" data-preset-del="' + p.id + '">&times;</span></span>';
+      }).join('');
+      container.querySelectorAll('[data-preset]').forEach(function(chip){
+        chip.addEventListener('click', function(e){
+          if(e.target.hasAttribute('data-preset-del')) return;
+          var preset = state.dietPresets.find(function(p){ return p.id === chip.getAttribute('data-preset'); });
+          if(!preset) return;
+          var current = foodField.value.trim();
+          foodField.value = current ? current + ', ' + preset.food : preset.food;
+        });
+      });
+      container.querySelectorAll('[data-preset-del]').forEach(function(x){
+        x.addEventListener('click', function(e){
+          e.stopPropagation();
+          var id = x.getAttribute('data-preset-del');
+          deletePresetRow(id).then(function(){
+            state.dietPresets = state.dietPresets.filter(function(p){ return p.id !== id; });
+            renderPresetChips();
+          });
+        });
+      });
+    }
+
+    btn.addEventListener('click', function(){
+      var text = foodField.value.trim();
+      if(!text){
+        statusEl.textContent = 'Describe what you ate first.';
+        statusEl.className = 'dz-status err';
+        return;
+      }
+      btn.disabled = true;
+      statusEl.textContent = 'Estimating...';
+      statusEl.className = 'dz-status';
+      breakdownEl.innerHTML = '';
+
+      estimateNutrition(text).then(function(data){
+        btn.disabled = false;
+        var caloriesField = document.querySelector('#form-diet [name="calories"]');
+        var proteinField = document.querySelector('#form-diet [name="protein"]');
+        if(caloriesField) caloriesField.value = Math.round(data.totalCalories);
+        if(proteinField) proteinField.value = Math.round(data.totalProtein);
+        statusEl.textContent = 'Estimated from standard nutrition data. Adjust the numbers below if anything looks off.';
+        statusEl.className = 'dz-status ok';
+        if(data.items && data.items.length){
+          breakdownEl.innerHTML = data.items.map(function(item){
+            return '<div style="display:flex;justify-content:space-between;font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--text-dim);padding:4px 0;border-bottom:1px solid var(--line);">' +
+              '<span>' + escapeHtml(item.name) + '</span>' +
+              '<span>' + Math.round(item.calories) + ' cal &middot; ' + Math.round(item.protein) + 'g</span>' +
+            '</div>';
+          }).join('');
+        }
+      }).catch(function(err){
+        btn.disabled = false;
+        statusEl.textContent = 'Could not estimate. Enter calories and protein manually.';
+        statusEl.className = 'dz-status err';
+        console.error(err);
+      });
+    });
+  }
+
+  async function estimateNutrition(foodText){
+    var response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: 'Estimate the nutrition for this food log entry using standard, widely accepted nutrition data (typical USDA-style values for common foods and portions). Use reasonable default portion sizes when the person did not specify one. Food eaten: "' + foodText.replace(/"/g, "'") + '". Respond with ONLY a raw JSON object, no markdown fences, no preamble, matching exactly this shape: {"totalCalories":number,"totalProtein":number,"items":[{"name":"string","calories":number,"protein":number}]}'
+        }]
+      })
+    });
+    var data = await response.json();
+    var textBlock = (data.content || []).find(function(b){ return b.type === 'text'; });
+    if(!textBlock) throw new Error('No text in response');
+    var clean = textBlock.text.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean);
+  }
+
+  // ---------- History ----------
+  var HISTORY_FILTERS = [
+    { key: 'all', label: 'All' },
+    { key: 'cardio', label: 'Cardio' },
+    { key: 'strength', label: 'Strength' },
+    { key: 'strength_test', label: 'Strength Test' },
+    { key: 'vo2max', label: 'VO2 Max' },
+    { key: 'diet', label: 'Diet' }
+  ];
+
+  function renderHistory(){
+    var el = document.getElementById('panel-history');
+    var all = state.entries.map(function(e){ return Object.assign({ _kind: 'entry' }, e); })
+      .concat(state.diet.map(function(e){ return Object.assign({ _kind: 'diet', type: 'diet' }, e); }));
+    all.sort(function(a,b){ return parseLocalDate(b.date) - parseLocalDate(a.date); });
+
+    var filterRow = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;">' +
+      HISTORY_FILTERS.map(function(f){
+        return '<button class="preset-chip" data-filter="' + f.key + '" style="border-radius:2px;' + (state.historyFilter===f.key ? 'border-color:var(--amber);color:var(--amber);' : '') + '">' + f.label + '</button>';
+      }).join('') +
+    '</div>';
+
+    var filtered = state.historyFilter === 'all' ? all : all.filter(function(e){ return e.type === state.historyFilter; });
+
+    if(all.length === 0){
+      el.innerHTML = '<div class="empty-state">No entries logged yet. Head to Log Entry to start tracking.</div>';
+      return;
+    }
+
+    el.innerHTML = filterRow + (filtered.length === 0 ? '<div class="empty-state">No entries in this category yet.</div>' : filtered.map(function(e){
+      var detail = '';
+      var label = '';
+      if(e._kind === 'diet'){
+        label = 'Diet';
+        detail = (e.calories ? e.calories + ' cal' : '') + (e.protein ? ' &middot; ' + e.protein + 'g protein' : '') + (e.food ? ' &middot; ' + escapeHtml(e.food) : '') + (e.notes ? ' &middot; ' + escapeHtml(e.notes) : '');
+      } else if(e.type === 'cardio'){
+        label = e.activity || 'Cardio';
+        detail = (e.duration ? e.duration + ' min' : '') + (e.distance ? ' &middot; ' + e.distance + ' mi' : '') + (e.avgHR ? ' &middot; avg ' + e.avgHR + ' bpm' : '') + (e.maxHR ? ' / max ' + e.maxHR + ' bpm' : '');
+      } else if(e.type === 'strength'){
+        label = 'Strength &middot; ' + (e.focus || '');
+        detail = (e.duration ? e.duration + ' min' : '') + (e.notes ? ' &middot; ' + escapeHtml(e.notes) : '');
+      } else if(e.type === 'vo2max'){
+        label = 'VO2 Max Check';
+        detail = e.value + ' ml/kg/min' + (e.source ? ' &middot; ' + e.source : '');
+      } else if(e.type === 'strength_test'){
+        label = 'Strength Test (Est. 1RM)';
+        detail = Math.round(epley1RM(e.weight, e.reps)) + ' lb estimated &middot; ' + e.weight + ' lb x ' + e.reps + ' reps';
+      }
+      return '<div class="entry" data-id="' + e.id + '" data-kind="' + e._kind + '">' +
+        '<div class="entry-main">' +
+          '<div class="entry-type">' + label + '</div>' +
+          '<div class="entry-detail">' + detail + '</div>' +
+        '</div>' +
+        '<div class="entry-date">' + fmtDate(e.date) + '</div>' +
+        '<button class="del-btn" data-edit="' + e.id + '" data-kind="' + e._kind + '" style="margin-right:6px;">Edit</button>' +
+        '<button class="del-btn" data-del="' + e.id + '" data-kind="' + e._kind + '">Delete</button>' +
+      '</div>';
+    }).join(''));
+
+    el.querySelectorAll('[data-filter]').forEach(function(chip){
+      chip.addEventListener('click', function(){
+        state.historyFilter = chip.getAttribute('data-filter');
+        renderHistory();
+      });
+    });
+
+    el.querySelectorAll('[data-edit]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        startEdit(btn.getAttribute('data-kind'), btn.getAttribute('data-edit'));
+      });
+    });
+
+    el.querySelectorAll('[data-del]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-del');
+        var kind = btn.getAttribute('data-kind');
+        btn.disabled = true;
+        if(kind === 'diet'){
+          deleteDietRow(id).then(function(){
+            state.diet = state.diet.filter(function(e){ return e.id !== id; });
+            renderHistory();
+          }).catch(function(){ btn.disabled = false; });
+        } else {
+          deleteEntryRow(id).then(function(){
+            state.entries = state.entries.filter(function(e){ return e.id !== id; });
+            renderHistory();
+          }).catch(function(){ btn.disabled = false; });
+        }
+      });
+    });
+  }
+
+  function escapeHtml(str){
+    if(!str) return '';
+    return str.replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c];
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
