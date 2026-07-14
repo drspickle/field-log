@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/(.*)", "destination": "/field-log-web.html" }
+    { "source": "/((?!api/).*)", "destination": "/field-log-web.html" }
   ]
 }
