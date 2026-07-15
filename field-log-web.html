@@ -864,13 +864,13 @@
       '<div class="chart-box"><canvas id="chart-vo2"></canvas></div>' +
       '<div class="section-title">Estimated 1RM Bench Trend</div>' +
       '<div class="chart-box"><canvas id="chart-strength"></canvas></div>' +
-      '<div class="section-title">Calories &amp; Protein (Logged Days)</div>' +
+      '<div class="section-title">Calories &amp; Protein (Last 7 Logged Days)</div>' +
       (statsData.dietDaily.length === 0 ? '<div class="empty-state">No diet entries logged yet.</div>' : '<div class="chart-box"><canvas id="chart-nutrition"></canvas></div>');
 
     var z2 = weeklyZone2Series(8);
     var vo2 = statsData.vo2Entries.slice(-10);
     var strengthTests = statsData.strengthTestEntries.slice(-10);
-    var dietRecent = statsData.dietDaily.slice(-20);
+    var dietRecent = statsData.dietDaily.slice(-7);
     var avgCalories = average(statsData.dietDaily.map(function(d){ return d.calories; }));
     var avgProtein = average(statsData.dietDaily.map(function(d){ return d.protein; }));
 
