@@ -790,8 +790,19 @@
   // ---------- Dashboard shell ----------
   var charts = {};
 
-  function renderDashboard(){
+  function renderHeaderStats(){
+    var el = document.getElementById('readout');
+    if(!el) return;
     var stats = computeStats();
+    el.innerHTML =
+      '<div class="readout-cell"><div class="readout-label">Zone 2 Min (7d)</div><div class="readout-value hot">' + stats.zone2Minutes + '</div>' + trendHtml(stats.zone2Minutes, stats.zone2Trend) + '</div>' +
+      '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div>' + trendHtml(parseFloat(stats.latestVo2), stats.vo2Trend) + '</div>' +
+      '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div>' + trendHtml(stats.latest1RM, stats.oneRMTrend) + '</div>' +
+      '<div class="readout-cell"><div class="readout-label">Calories Today</div><div class="readout-value hot">' + stats.todayCalories + '</div>' + trendHtml(stats.todayCalories, stats.caloriesTrend) + '</div>' +
+      '<div class="readout-cell"><div class="readout-label">Protein Today</div><div class="readout-value hot">' + stats.todayProtein + 'g</div>' + trendHtml(stats.todayProtein, stats.proteinTrend) + '</div>';
+  }
+
+  function renderDashboard(){
     root.innerHTML =
       '<div class="wrap">' +
         '<header>' +
@@ -800,13 +811,7 @@
             '<button id="sign-out-btn" style="background:none;border:1px solid var(--line);color:var(--text-dim);border-radius:2px;padding:4px 10px;font-family:\'IBM Plex Mono\',monospace;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;">Sign Out</button>' +
           '</div>' +
           '<h1>Field Log</h1>' +
-          '<div class="readout">' +
-            '<div class="readout-cell"><div class="readout-label">Zone 2 Min (7d)</div><div class="readout-value hot">' + stats.zone2Minutes + '</div>' + trendHtml(stats.zone2Minutes, stats.zone2Trend) + '</div>' +
-            '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div>' + trendHtml(parseFloat(stats.latestVo2), stats.vo2Trend) + '</div>' +
-            '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div>' + trendHtml(stats.latest1RM, stats.oneRMTrend) + '</div>' +
-            '<div class="readout-cell"><div class="readout-label">Calories Today</div><div class="readout-value hot">' + stats.todayCalories + '</div>' + trendHtml(stats.todayCalories, stats.caloriesTrend) + '</div>' +
-            '<div class="readout-cell"><div class="readout-label">Protein Today</div><div class="readout-value hot">' + stats.todayProtein + 'g</div>' + trendHtml(stats.todayProtein, stats.proteinTrend) + '</div>' +
-          '</div>' +
+          '<div class="readout" id="readout"></div>' +
         '</header>' +
         '<div class="tabs">' +
           '<button class="tab" data-tab="overview">Overview</button>' +
@@ -830,10 +835,12 @@
         render();
       });
     });
+    renderHeaderStats();
     updateTabs();
   }
 
   function updateTabs(){
+    renderHeaderStats();
     document.querySelectorAll('.tab').forEach(function(t){
       t.classList.toggle('active', t.getAttribute('data-tab') === state.activeTab);
     });
@@ -1113,7 +1120,7 @@
       };
       commitEntry('entries', entry).then(function(wasEditing){
         if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
-        else { flashMsg('cardio','Saved.'); clearFields(c); }
+        else { flashMsg('cardio','Saved.'); clearFields(c); renderHeaderStats(); }
       }).catch(function(){ flashMsg('cardio','Save failed, try again.', true); });
     });
 
@@ -1126,7 +1133,7 @@
       };
       commitEntry('entries', entry).then(function(wasEditing){
         if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
-        else { flashMsg('strength','Saved.'); clearFields(c); }
+        else { flashMsg('strength','Saved.'); clearFields(c); renderHeaderStats(); }
       }).catch(function(){ flashMsg('strength','Save failed, try again.', true); });
     });
 
@@ -1147,7 +1154,7 @@
       };
       commitEntry('entries', entry).then(function(wasEditing){
         if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
-        else { flashMsg('strength_test','Saved.'); clearFields(stForm); updateLiveRM(); }
+        else { flashMsg('strength_test','Saved.'); clearFields(stForm); updateLiveRM(); renderHeaderStats(); }
       }).catch(function(){ flashMsg('strength_test','Save failed, try again.', true); });
     });
 
@@ -1157,7 +1164,7 @@
       var entry = { type: 'vo2max', date: fieldVal(c,'date'), value: fieldVal(c,'value'), source: fieldVal(c,'source') };
       commitEntry('entries', entry).then(function(wasEditing){
         if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
-        else { flashMsg('vo2max','Saved.'); clearFields(c); }
+        else { flashMsg('vo2max','Saved.'); clearFields(c); renderHeaderStats(); }
       }).catch(function(){ flashMsg('vo2max','Save failed, try again.', true); });
     });
 
@@ -1172,6 +1179,7 @@
           clearFields(c);
           document.getElementById('diet-breakdown').innerHTML = '';
           document.getElementById('diet-estimate-status').textContent = '';
+          renderHeaderStats();
         }
       }).catch(function(){ flashMsg('diet','Save failed, try again.', true); });
     });
@@ -1443,11 +1451,13 @@
           deleteDietRow(id).then(function(){
             state.diet = state.diet.filter(function(e){ return e.id !== id; });
             renderHistory();
+            renderHeaderStats();
           }).catch(function(){ btn.disabled = false; });
         } else {
           deleteEntryRow(id).then(function(){
             state.entries = state.entries.filter(function(e){ return e.id !== id; });
             renderHistory();
+            renderHeaderStats();
           }).catch(function(){ btn.disabled = false; });
         }
       });
