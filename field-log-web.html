@@ -169,6 +169,11 @@
     color:var(--text);
   }
   .readout-value.hot{color:var(--amber);}
+  .readout-trend{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    margin-top:3px;
+  }
 
   /* ---------- Tabs ---------- */
   .tabs{
@@ -672,6 +677,32 @@
     return w * (1 + r/30);
   }
 
+  function average(arr){
+    if(!arr || !arr.length) return null;
+    return arr.reduce(function(a,b){ return a+b; }, 0) / arr.length;
+  }
+
+  function dailyDietTotals(){
+    var map = {};
+    state.diet.forEach(function(e){
+      if(!map[e.date]) map[e.date] = { date: e.date, calories: 0, protein: 0 };
+      map[e.date].calories += parseFloat(e.calories) || 0;
+      map[e.date].protein += parseFloat(e.protein) || 0;
+    });
+    return Object.keys(map).map(function(k){ return map[k]; })
+      .sort(function(a,b){ return parseLocalDate(a.date) - parseLocalDate(b.date); });
+  }
+
+  function trendHtml(current, priorAvg){
+    if(current === null || current === undefined || priorAvg === null || priorAvg === undefined || !priorAvg) return '';
+    var dir = current > priorAvg ? 'up' : (current < priorAvg ? 'down' : 'flat');
+    var arrow = dir === 'up' ? '▲' : (dir === 'down' ? '▼' : '–');
+    var color = dir === 'up' ? 'var(--olive)' : (dir === 'down' ? 'var(--rust)' : 'var(--text-dim)');
+    var pct = Math.round(((current - priorAvg) / priorAvg) * 100);
+    var sign = pct > 0 ? '+' : '';
+    return '<div class="readout-trend" style="color:' + color + ';">' + arrow + ' ' + sign + pct + '% vs 30d avg</div>';
+  }
+
   function computeStats(){
     var zone2Minutes = state.entries.filter(function(e){
       return e.type === 'cardio' && isWithinDays(e.date, 7);
@@ -680,27 +711,61 @@
       if(avg >= 127 && avg <= 154){ return sum + (parseFloat(e.duration)||0); }
       return sum;
     }, 0);
+    // Trend baseline: average weekly rate over the 30 days before the current 7-day window.
+    var priorZone2Total = state.entries.filter(function(e){
+      var d = parseLocalDate(e.date);
+      return e.type === 'cardio' && d >= daysAgo(37) && d < daysAgo(7);
+    }).reduce(function(sum, e){
+      var avg = parseFloat(e.avgHR);
+      if(avg >= 127 && avg <= 154){ return sum + (parseFloat(e.duration)||0); }
+      return sum;
+    }, 0);
+    var zone2Trend = priorZone2Total > 0 ? priorZone2Total / (30/7) : null;
+
     var vo2Entries = state.entries.filter(function(e){ return e.type === 'vo2max'; })
       .sort(function(a,b){ return parseLocalDate(a.date) - parseLocalDate(b.date); });
     var latestVo2 = vo2Entries.length ? vo2Entries[vo2Entries.length-1].value : null;
+    var priorVo2 = vo2Entries.slice(0, -1).filter(function(e){
+      var d = parseLocalDate(e.date);
+      return d >= daysAgo(30) && d < daysAgo(0);
+    }).map(function(e){ return parseFloat(e.value); });
+    var vo2Trend = average(priorVo2);
 
     var strengthTestEntries = state.entries.filter(function(e){ return e.type === 'strength_test'; })
       .sort(function(a,b){ return parseLocalDate(a.date) - parseLocalDate(b.date); });
     var latest1RM = strengthTestEntries.length ? epley1RM(strengthTestEntries[strengthTestEntries.length-1].weight, strengthTestEntries[strengthTestEntries.length-1].reps) : null;
+    var priorRM = strengthTestEntries.slice(0, -1).filter(function(e){
+      var d = parseLocalDate(e.date);
+      return d >= daysAgo(30) && d < daysAgo(0);
+    }).map(function(e){ return epley1RM(e.weight, e.reps); }).filter(function(v){ return v !== null; });
+    var oneRMTrend = average(priorRM);
 
+    var dietDaily = dailyDietTotals();
     var todayDiet = state.diet.filter(function(e){ return isToday(e.date); });
     var todayCalories = todayDiet.reduce(function(sum, e){ return sum + (parseFloat(e.calories)||0); }, 0);
     var todayProtein = todayDiet.reduce(function(sum, e){ return sum + (parseFloat(e.protein)||0); }, 0);
+    var priorDiet = dietDaily.filter(function(d){
+      var dd = parseLocalDate(d.date);
+      return dd >= daysAgo(30) && dd < daysAgo(0);
+    });
+    var caloriesTrend = average(priorDiet.map(function(d){ return d.calories; }));
+    var proteinTrend = average(priorDiet.map(function(d){ return d.protein; }));
 
     return {
       zone2Minutes: Math.round(zone2Minutes),
+      zone2Trend: zone2Trend,
       latestVo2: latestVo2,
       vo2Entries: vo2Entries,
+      vo2Trend: vo2Trend,
       latest1RM: latest1RM,
       strengthTestEntries: strengthTestEntries,
+      oneRMTrend: oneRMTrend,
+      dietDaily: dietDaily,
       todayCalories: Math.round(todayCalories),
       todayProtein: Math.round(todayProtein),
-      todayDietCount: todayDiet.length
+      todayDietCount: todayDiet.length,
+      caloriesTrend: caloriesTrend,
+      proteinTrend: proteinTrend
     };
   }
 
@@ -736,9 +801,11 @@
           '</div>' +
           '<h1>Field Log</h1>' +
           '<div class="readout">' +
-            '<div class="readout-cell"><div class="readout-label">Zone 2 Min (7d)</div><div class="readout-value hot">' + stats.zone2Minutes + '</div></div>' +
-            '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div></div>' +
-            '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div></div>' +
+            '<div class="readout-cell"><div class="readout-label">Zone 2 Min (7d)</div><div class="readout-value hot">' + stats.zone2Minutes + '</div>' + trendHtml(stats.zone2Minutes, stats.zone2Trend) + '</div>' +
+            '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div>' + trendHtml(parseFloat(stats.latestVo2), stats.vo2Trend) + '</div>' +
+            '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div>' + trendHtml(stats.latest1RM, stats.oneRMTrend) + '</div>' +
+            '<div class="readout-cell"><div class="readout-label">Calories Today</div><div class="readout-value hot">' + stats.todayCalories + '</div>' + trendHtml(stats.todayCalories, stats.caloriesTrend) + '</div>' +
+            '<div class="readout-cell"><div class="readout-label">Protein Today</div><div class="readout-value hot">' + stats.todayProtein + 'g</div>' + trendHtml(stats.todayProtein, stats.proteinTrend) + '</div>' +
           '</div>' +
         '</header>' +
         '<div class="tabs">' +
@@ -784,26 +851,26 @@
     var el = document.getElementById('panel-overview');
     var statsData = computeStats();
     el.innerHTML =
-      '<div class="section-title">Today&rsquo;s Nutrition</div>' +
-      '<div class="grid">' +
-        '<div class="card"><div class="card-label">Calories Today</div><div class="card-value">' + statsData.todayCalories + '<span>cal</span></div></div>' +
-        '<div class="card"><div class="card-label">Protein Today</div><div class="card-value">' + statsData.todayProtein + '<span>g</span></div></div>' +
-      '</div>' +
-      (statsData.todayDietCount === 0 ? '<div style="font-size:12px;color:var(--text-dim);margin:-14px 0 20px;">Nothing logged yet today.</div>' : '') +
       '<div class="section-title">Cardiovascular Minutes / Week</div>' +
       '<div class="chart-box"><canvas id="chart-zone2"></canvas></div>' +
       '<div class="section-title">VO2 Max Trend</div>' +
       '<div class="chart-box"><canvas id="chart-vo2"></canvas></div>' +
       '<div class="section-title">Estimated 1RM Bench Trend</div>' +
-      '<div class="chart-box"><canvas id="chart-strength"></canvas></div>';
+      '<div class="chart-box"><canvas id="chart-strength"></canvas></div>' +
+      '<div class="section-title">Calories &amp; Protein (Logged Days)</div>' +
+      (statsData.dietDaily.length === 0 ? '<div class="empty-state">No diet entries logged yet.</div>' : '<div class="chart-box"><canvas id="chart-nutrition"></canvas></div>');
 
     var z2 = weeklyZone2Series(8);
     var vo2 = statsData.vo2Entries.slice(-10);
     var strengthTests = statsData.strengthTestEntries.slice(-10);
+    var dietRecent = statsData.dietDaily.slice(-20);
+    var avgCalories = average(statsData.dietDaily.map(function(d){ return d.calories; }));
+    var avgProtein = average(statsData.dietDaily.map(function(d){ return d.protein; }));
 
     if(charts.zone2) charts.zone2.destroy();
     if(charts.vo2) charts.vo2.destroy();
     if(charts.strength) charts.strength.destroy();
+    if(charts.nutrition) charts.nutrition.destroy();
 
     charts.zone2 = new Chart(document.getElementById('chart-zone2'), {
       type: 'bar',
@@ -831,6 +898,23 @@
       },
       options: chartOpts()
     });
+
+    var nutritionCanvas = document.getElementById('chart-nutrition');
+    if(nutritionCanvas){
+      charts.nutrition = new Chart(nutritionCanvas, {
+        type: 'line',
+        data: {
+          labels: dietRecent.map(function(d){ return fmtDate(d.date); }),
+          datasets: [
+            { label: 'Calories', data: dietRecent.map(function(d){ return Math.round(d.calories); }), borderColor: '#e8a33d', backgroundColor: '#e8a33d', yAxisID: 'y', tension: 0.3, pointRadius: 4 },
+            { label: 'Avg Calories', data: dietRecent.map(function(){ return avgCalories ? Math.round(avgCalories) : null; }), borderColor: '#e8a33d', borderDash: [4,4], pointRadius: 0, yAxisID: 'y', fill: false },
+            { label: 'Protein', data: dietRecent.map(function(d){ return Math.round(d.protein); }), borderColor: '#5c7a68', backgroundColor: '#5c7a68', yAxisID: 'y1', tension: 0.3, pointRadius: 4 },
+            { label: 'Avg Protein', data: dietRecent.map(function(){ return avgProtein ? Math.round(avgProtein) : null; }), borderColor: '#5c7a68', borderDash: [4,4], pointRadius: 0, yAxisID: 'y1', fill: false }
+          ]
+        },
+        options: chartOptsDualAxis()
+      });
+    }
   }
 
   function chartOpts(){
@@ -841,6 +925,19 @@
       scales: {
         x: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } },
         y: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' }, beginAtZero: true }
+      }
+    };
+  }
+
+  function chartOptsDualAxis(){
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: true, labels: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 }, boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } },
+        y: { position: 'left', ticks: { color: '#e8a33d', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' }, beginAtZero: true, title: { display: true, text: 'Calories', color: '#e8a33d', font: { family: 'IBM Plex Mono', size: 10 } } },
+        y1: { position: 'right', ticks: { color: '#5c7a68', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'Protein (g)', color: '#5c7a68', font: { family: 'IBM Plex Mono', size: 10 } } }
       }
     };
   }
