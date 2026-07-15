@@ -909,14 +909,14 @@
     var nutritionCanvas = document.getElementById('chart-nutrition');
     if(nutritionCanvas){
       charts.nutrition = new Chart(nutritionCanvas, {
-        type: 'line',
+        type: 'bar',
         data: {
           labels: dietRecent.map(function(d){ return fmtDate(d.date); }),
           datasets: [
-            { label: 'Calories', data: dietRecent.map(function(d){ return Math.round(d.calories); }), borderColor: '#e8a33d', backgroundColor: '#e8a33d', yAxisID: 'y', tension: 0.3, pointRadius: 4 },
-            { label: 'Avg Calories', data: dietRecent.map(function(){ return avgCalories ? Math.round(avgCalories) : null; }), borderColor: '#e8a33d', borderDash: [4,4], pointRadius: 0, yAxisID: 'y', fill: false },
-            { label: 'Protein', data: dietRecent.map(function(d){ return Math.round(d.protein); }), borderColor: '#5c7a68', backgroundColor: '#5c7a68', yAxisID: 'y1', tension: 0.3, pointRadius: 4 },
-            { label: 'Avg Protein', data: dietRecent.map(function(){ return avgProtein ? Math.round(avgProtein) : null; }), borderColor: '#5c7a68', borderDash: [4,4], pointRadius: 0, yAxisID: 'y1', fill: false }
+            { type: 'bar', label: 'Calories', data: dietRecent.map(function(d){ return Math.round(d.calories); }), backgroundColor: '#e8a33d', yAxisID: 'y' },
+            { type: 'bar', label: 'Protein', data: dietRecent.map(function(d){ return Math.round(d.protein); }), backgroundColor: '#5c7a68', yAxisID: 'y1' },
+            { type: 'line', label: 'Avg Calories', data: dietRecent.map(function(){ return avgCalories ? Math.round(avgCalories) : null; }), borderColor: '#e8a33d', borderDash: [4,4], pointRadius: 0, yAxisID: 'y', fill: false },
+            { type: 'line', label: 'Avg Protein', data: dietRecent.map(function(){ return avgProtein ? Math.round(avgProtein) : null; }), borderColor: '#5c7a68', borderDash: [4,4], pointRadius: 0, yAxisID: 'y1', fill: false }
           ]
         },
         options: chartOptsDualAxis()
