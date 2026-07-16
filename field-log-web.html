@@ -693,11 +693,11 @@
       .sort(function(a,b){ return parseLocalDate(a.date) - parseLocalDate(b.date); });
   }
 
-  function trendHtml(current, priorAvg){
+  function trendHtml(current, priorAvg, colorOverride){
     if(current === null || current === undefined || priorAvg === null || priorAvg === undefined || !priorAvg) return '';
     var dir = current > priorAvg ? 'up' : (current < priorAvg ? 'down' : 'flat');
     var arrow = dir === 'up' ? '▲' : (dir === 'down' ? '▼' : '–');
-    var color = dir === 'up' ? 'var(--olive)' : (dir === 'down' ? 'var(--rust)' : 'var(--text-dim)');
+    var color = colorOverride || (dir === 'up' ? 'var(--olive)' : (dir === 'down' ? 'var(--rust)' : 'var(--text-dim)'));
     var pct = Math.round(((current - priorAvg) / priorAvg) * 100);
     var sign = pct > 0 ? '+' : '';
     return '<div class="readout-trend" style="color:' + color + ';">' + arrow + ' ' + sign + pct + '% vs 30d avg</div>';
@@ -796,8 +796,8 @@
     var stats = computeStats();
     el.innerHTML =
       '<div class="readout-cell"><div class="readout-label">Zone 2 Min (7d)</div><div class="readout-value hot">' + stats.zone2Minutes + '</div>' + trendHtml(stats.zone2Minutes, stats.zone2Trend) + '</div>' +
-      '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div>' + trendHtml(parseFloat(stats.latestVo2), stats.vo2Trend) + '</div>' +
-      '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div>' + trendHtml(stats.latest1RM, stats.oneRMTrend) + '</div>' +
+      '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div>' + trendHtml(parseFloat(stats.latestVo2), stats.vo2Trend, 'var(--amber)') + '</div>' +
+      '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div>' + trendHtml(stats.latest1RM, stats.oneRMTrend, 'var(--amber)') + '</div>' +
       '<div class="readout-cell"><div class="readout-label">Calories Today</div><div class="readout-value hot">' + stats.todayCalories + '</div>' + trendHtml(stats.todayCalories, stats.caloriesTrend) + '</div>' +
       '<div class="readout-cell"><div class="readout-label">Protein Today</div><div class="readout-value hot">' + stats.todayProtein + 'g</div>' + trendHtml(stats.todayProtein, stats.proteinTrend) + '</div>';
   }
@@ -915,8 +915,8 @@
           datasets: [
             { type: 'bar', label: 'Calories', data: dietRecent.map(function(d){ return Math.round(d.calories); }), backgroundColor: '#e8a33d', yAxisID: 'y' },
             { type: 'bar', label: 'Protein', data: dietRecent.map(function(d){ return Math.round(d.protein); }), backgroundColor: '#5c7a68', yAxisID: 'y1' },
-            { type: 'line', label: 'Avg Calories', data: dietRecent.map(function(){ return avgCalories ? Math.round(avgCalories) : null; }), borderColor: '#e8a33d', borderDash: [4,4], pointRadius: 0, yAxisID: 'y', fill: false },
-            { type: 'line', label: 'Avg Protein', data: dietRecent.map(function(){ return avgProtein ? Math.round(avgProtein) : null; }), borderColor: '#5c7a68', borderDash: [4,4], pointRadius: 0, yAxisID: 'y1', fill: false }
+            { type: 'line', label: 'Avg Calories', data: dietRecent.map(function(){ return avgCalories ? Math.round(avgCalories) : null; }), borderColor: '#e8a33d', borderWidth: 1.5, borderDash: [4,4], pointRadius: 0, yAxisID: 'y', fill: false },
+            { type: 'line', label: 'Avg Protein', data: dietRecent.map(function(){ return avgProtein ? Math.round(avgProtein) : null; }), borderColor: '#5c7a68', borderWidth: 1.5, borderDash: [4,4], pointRadius: 0, yAxisID: 'y1', fill: false }
           ]
         },
         options: chartOptsDualAxis()
@@ -942,7 +942,7 @@
       maintainAspectRatio: false,
       plugins: { legend: { display: true, labels: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 }, boxWidth: 12 } } },
       scales: {
-        x: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } },
+        x: { offset: false, ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } },
         y: { position: 'left', ticks: { color: '#e8a33d', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' }, beginAtZero: true, title: { display: true, text: 'Calories', color: '#e8a33d', font: { family: 'IBM Plex Mono', size: 10 } } },
         y1: { position: 'right', ticks: { color: '#5c7a68', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'Protein (g)', color: '#5c7a68', font: { family: 'IBM Plex Mono', size: 10 } } }
       }
