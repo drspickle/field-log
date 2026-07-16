@@ -796,8 +796,8 @@
     var stats = computeStats();
     el.innerHTML =
       '<div class="readout-cell"><div class="readout-label">Zone 2 Min (7d)</div><div class="readout-value hot">' + stats.zone2Minutes + '</div>' + trendHtml(stats.zone2Minutes, stats.zone2Trend) + '</div>' +
-      '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div>' + trendHtml(parseFloat(stats.latestVo2), stats.vo2Trend, 'var(--amber)') + '</div>' +
-      '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div>' + trendHtml(stats.latest1RM, stats.oneRMTrend, 'var(--amber)') + '</div>' +
+      '<div class="readout-cell"><div class="readout-label">Latest VO2 Max</div><div class="readout-value hot">' + (stats.latestVo2 ? stats.latestVo2 : '&mdash;') + '</div>' + trendHtml(parseFloat(stats.latestVo2), stats.vo2Trend) + '</div>' +
+      '<div class="readout-cell"><div class="readout-label">Est. 1RM Bench</div><div class="readout-value hot">' + (stats.latest1RM ? Math.round(stats.latest1RM) + ' lb' : '&mdash;') + '</div>' + trendHtml(stats.latest1RM, stats.oneRMTrend) + '</div>' +
       '<div class="readout-cell"><div class="readout-label">Calories Today</div><div class="readout-value hot">' + stats.todayCalories + '</div>' + trendHtml(stats.todayCalories, stats.caloriesTrend) + '</div>' +
       '<div class="readout-cell"><div class="readout-label">Protein Today</div><div class="readout-value hot">' + stats.todayProtein + 'g</div>' + trendHtml(stats.todayProtein, stats.proteinTrend) + '</div>';
   }
@@ -892,7 +892,7 @@
       type: 'line',
       data: {
         labels: vo2.map(function(v){ return fmtDate(v.date); }),
-        datasets: [{ label: 'VO2 Max', data: vo2.map(function(v){ return v.value; }), borderColor: '#5c7a68', backgroundColor: '#5c7a68', tension: 0.3, pointRadius: 4 }]
+        datasets: [{ label: 'VO2 Max', data: vo2.map(function(v){ return v.value; }), borderColor: '#e8a33d', backgroundColor: '#e8a33d', tension: 0.3, pointRadius: 4 }]
       },
       options: chartOpts()
     });
