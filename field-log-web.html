@@ -1023,6 +1023,12 @@
       '</div>' +
 
       '<div class="entry-form ' + (state.formType==='diet'?'active':'') + '" id="form-diet" data-kind="diet">' +
+        '<input type="file" id="shot-diet" accept="image/png,image/jpeg,image/webp" style="display:none">' +
+        '<div class="dropzone" id="dz-diet">' +
+          '<div>Drop a nutrition label or food photo here, or click to browse</div>' +
+          '<div class="dz-sub">Estimates calories and protein automatically. Review before saving.</div>' +
+          '<div class="dz-status" id="dz-status-diet"></div>' +
+        '</div>' +
         '<div class="field-row">' +
           '<div><label>Date</label><input type="date" name="date" required></div>' +
         '</div>' +
@@ -1186,6 +1192,7 @@
 
     wireDropzone();
     wireDietEstimate();
+    wireDietPhoto();
   }
 
   // ---------- Screenshot import (uses Anthropic API to read workout screenshots) ----------
@@ -1261,6 +1268,89 @@
       if(data.avgHR !== null && data.avgHR !== undefined) c.querySelector('[name="avgHR"]').value = Math.round(data.avgHR);
       if(data.maxHR !== null && data.maxHR !== undefined) c.querySelector('[name="maxHR"]').value = Math.round(data.maxHR);
       if(data.calories !== null && data.calories !== undefined) c.querySelector('[name="calories"]').value = Math.round(data.calories);
+    }
+  }
+
+  // ---------- Diet photo import (uses Anthropic API to read nutrition labels / food photos) ----------
+  function wireDietPhoto(){
+    var dz = document.getElementById('dz-diet');
+    var fileInput = document.getElementById('shot-diet');
+    if(!dz || !fileInput) return;
+
+    dz.addEventListener('click', function(){ fileInput.click(); });
+    fileInput.addEventListener('change', function(){
+      if(fileInput.files && fileInput.files[0]) handlePhoto(fileInput.files[0]);
+    });
+    dz.addEventListener('dragover', function(e){ e.preventDefault(); dz.classList.add('drag-over'); });
+    dz.addEventListener('dragleave', function(){ dz.classList.remove('drag-over'); });
+    dz.addEventListener('drop', function(e){
+      e.preventDefault();
+      dz.classList.remove('drag-over');
+      if(e.dataTransfer.files && e.dataTransfer.files[0]) handlePhoto(e.dataTransfer.files[0]);
+    });
+
+    function setStatus(text, cls){
+      var s = document.getElementById('dz-status-diet');
+      if(!s) return;
+      s.textContent = text;
+      s.className = 'dz-status' + (cls ? ' ' + cls : '');
+    }
+
+    function handlePhoto(file){
+      var mimeOk = ['image/png','image/jpeg','image/webp'].indexOf(file.type) !== -1;
+      if(!mimeOk){
+        setStatus('Unsupported file type. Use a PNG, JPG, or WEBP photo.', 'err');
+        return;
+      }
+      dz.classList.add('busy');
+      setStatus('Reading photo...');
+      var reader = new FileReader();
+      reader.onload = function(){
+        var base64 = reader.result.split(',')[1];
+        estimateNutritionFromPhoto(base64, file.type).then(function(data){
+          fillDietFields(data);
+          dz.classList.remove('busy');
+          setStatus('Estimated from photo. Review the fields below, then save.', 'ok');
+        }).catch(function(err){
+          dz.classList.remove('busy');
+          setStatus('Could not read the photo. Enter the numbers manually.', 'err');
+          console.error(err);
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function fillDietFields(data){
+      var c = document.getElementById('form-diet');
+      if(!data) return;
+      var caloriesField = c.querySelector('[name="calories"]');
+      var proteinField = c.querySelector('[name="protein"]');
+      if(caloriesField && data.totalCalories !== null && data.totalCalories !== undefined) caloriesField.value = Math.round(data.totalCalories);
+      if(proteinField && data.totalProtein !== null && data.totalProtein !== undefined) proteinField.value = Math.round(data.totalProtein);
+      var foodField = c.querySelector('[name="food"]');
+      if(foodField && !foodField.value.trim() && data.items && data.items.length){
+        foodField.value = data.items.map(function(item){ return item.name; }).join(', ');
+      }
+      var breakdownEl = document.getElementById('diet-breakdown');
+      if(breakdownEl && data.items && data.items.length){
+        breakdownEl.innerHTML = data.items.map(function(item){
+          return '<div style="display:flex;justify-content:space-between;font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:var(--text-dim);padding:4px 0;border-bottom:1px solid var(--line);">' +
+            '<span>' + escapeHtml(item.name) + '</span>' +
+            '<span>' + Math.round(item.calories) + ' cal &middot; ' + Math.round(item.protein) + 'g</span>' +
+          '</div>';
+        }).join('');
+      }
+    }
+
+    async function estimateNutritionFromPhoto(base64, mimeType){
+      var token = await authToken();
+      var response = await fetch('/api/estimate-nutrition-photo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ imageBase64: base64, mimeType: mimeType })
+      });
+      if(!response.ok) throw new Error('Photo estimate request failed');
+      return await response.json();
     }
   }
 
