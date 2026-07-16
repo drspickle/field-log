@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FIELD LOG</title>
+<title>Field Log</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='9' fill='%23e8a33d'/%3E%3Cg fill='none' stroke='%23e8a33d' stroke-width='6'%3E%3Cellipse cx='50' cy='50' rx='44' ry='18'/%3E%3Cellipse cx='50' cy='50' rx='44' ry='18' transform='rotate(60 50 50)'/%3E%3Cellipse cx='50' cy='50' rx='44' ry='18' transform='rotate(120 50 50)'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -915,8 +916,8 @@
           datasets: [
             { type: 'bar', label: 'Calories', data: dietRecent.map(function(d){ return Math.round(d.calories); }), backgroundColor: '#e8a33d', yAxisID: 'y' },
             { type: 'bar', label: 'Protein', data: dietRecent.map(function(d){ return Math.round(d.protein); }), backgroundColor: '#5c7a68', yAxisID: 'y1' },
-            { type: 'line', label: 'Avg Calories', data: dietRecent.map(function(){ return avgCalories ? Math.round(avgCalories) : null; }), borderColor: '#e8a33d', borderWidth: 1.5, borderDash: [4,4], pointRadius: 0, yAxisID: 'y', fill: false },
-            { type: 'line', label: 'Avg Protein', data: dietRecent.map(function(){ return avgProtein ? Math.round(avgProtein) : null; }), borderColor: '#5c7a68', borderWidth: 1.5, borderDash: [4,4], pointRadius: 0, yAxisID: 'y1', fill: false }
+            { type: 'line', label: 'Avg Calories', data: dietRecent.map(function(){ return avgCalories ? Math.round(avgCalories) : null; }), borderColor: '#e8a33d', borderWidth: 1.5, borderDash: [4,4], pointRadius: 0, xAxisID: 'x1', yAxisID: 'y', fill: false },
+            { type: 'line', label: 'Avg Protein', data: dietRecent.map(function(){ return avgProtein ? Math.round(avgProtein) : null; }), borderColor: '#5c7a68', borderWidth: 1.5, borderDash: [4,4], pointRadius: 0, xAxisID: 'x1', yAxisID: 'y1', fill: false }
           ]
         },
         options: chartOptsDualAxis()
@@ -943,6 +944,7 @@
       plugins: { legend: { display: true, labels: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 }, boxWidth: 12 } } },
       scales: {
         x: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } },
+        x1: { type: 'category', offset: false, display: false },
         y: { position: 'left', ticks: { color: '#e8a33d', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' }, beginAtZero: true, title: { display: true, text: 'Calories', color: '#e8a33d', font: { family: 'IBM Plex Mono', size: 10 } } },
         y1: { position: 'right', ticks: { color: '#5c7a68', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { drawOnChartArea: false }, beginAtZero: true, title: { display: true, text: 'Protein (g)', color: '#5c7a68', font: { family: 'IBM Plex Mono', size: 10 } } }
       }
