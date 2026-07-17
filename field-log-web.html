@@ -424,6 +424,23 @@
     cursor:pointer;
   }
   .del-btn:hover{border-color:var(--rust);color:var(--rust);}
+  .icon-btn{
+    background:none;
+    border:1px solid var(--line);
+    color:var(--text-dim);
+    border-radius:2px;
+    width:30px;
+    height:30px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:0;
+    cursor:pointer;
+    flex:none;
+  }
+  .icon-btn svg{width:16px;height:16px;fill:currentColor;}
+  .icon-btn:hover{border-color:var(--amber);color:var(--amber);}
+  .icon-btn.danger:hover{border-color:var(--rust);color:var(--rust);}
   .empty-state{
     color:var(--text-dim);
     font-size:13px;
@@ -1496,6 +1513,9 @@
   }
 
   // ---------- History ----------
+  var ICON_DUPLICATE = '<svg viewBox="0 0 24 24"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2m0 16H8V7h11z"/></svg>';
+  var ICON_EDIT = '<svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34a.996.996 0 0 0-1.41 0l-1.83 1.83 3.75 3.75z"/></svg>';
+  var ICON_DELETE = '<svg viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6zM19 4h-3.5l-1-1h-5l-1 1H5v2h14z"/></svg>';
   var HISTORY_FILTERS = [
     { key: 'all', label: 'All' },
     { key: 'cardio', label: 'Cardio' },
@@ -1552,10 +1572,10 @@
           '<div class="entry-type">' + label + '</div>' +
           '<div class="entry-detail">' + detail + '</div>' +
         '</div>' +
+        (e._kind === 'diet' ? '<button class="icon-btn" data-duplicate="' + e.id + '" title="Duplicate" aria-label="Duplicate">' + ICON_DUPLICATE + '</button>' : '') +
+        '<button class="icon-btn" data-edit="' + e.id + '" data-kind="' + e._kind + '" title="Edit" aria-label="Edit">' + ICON_EDIT + '</button>' +
+        '<button class="icon-btn danger" data-del="' + e.id + '" data-kind="' + e._kind + '" title="Delete" aria-label="Delete">' + ICON_DELETE + '</button>' +
         '<div class="entry-date">' + fmtDate(e.date) + '</div>' +
-        (e._kind === 'diet' ? '<button class="del-btn" data-duplicate="' + e.id + '" style="margin-right:6px;">Duplicate</button>' : '') +
-        '<button class="del-btn" data-edit="' + e.id + '" data-kind="' + e._kind + '" style="margin-right:6px;">Edit</button>' +
-        '<button class="del-btn" data-del="' + e.id + '" data-kind="' + e._kind + '">Delete</button>' +
       '</div>';
     }).join(''));
 
