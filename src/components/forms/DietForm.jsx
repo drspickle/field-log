@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Box, TextField, Button, Typography, Chip } from '@mui/material';
+import { Box, TextField, Button, IconButton, Typography, Chip, useMediaQuery, useTheme } from '@mui/material';
+import BookmarkAddIcon from '@mui/icons-material/BookmarkAdd';
 import PhotoDropzone from '../PhotoDropzone';
 import { localDateStr } from '../../utils/stats';
 import { insertPreset, deletePresetRow } from '../../utils/supabase';
@@ -22,6 +23,9 @@ function Breakdown({ items }) {
 }
 
 export default function DietForm({ editing, diet, dietPresets, setDietPresets, commitEntry, cancelEdit }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   const [fields, setFields] = useState(INITIAL);
   const [message, setMessage] = useState({ text: '', isError: false });
   const messageTimer = useRef(null);
@@ -174,24 +178,37 @@ export default function DietForm({ editing, diet, dietPresets, setDietPresets, c
         )}
       </Box>
 
-      <Box sx={{ display: 'flex', gap: 1, mb: 2, alignItems: 'center' }}>
-        <TextField
-          placeholder="Name this meal (e.g. Breakfast)"
-          value={presetName}
-          onChange={(e) => setPresetName(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSavePreset(); } }}
-          sx={{ flex: 1 }}
-        />
-        <Button variant="outlined" color="inherit" disabled={savingPreset} onClick={handleSavePreset} sx={{ color: 'text.secondary', borderColor: 'divider', whiteSpace: 'nowrap' }}>
-          Save as Quick Meal
-        </Button>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, mb: 2, alignItems: { xs: 'stretch', sm: 'center' } }}>
+        <Box sx={{ display: 'flex', gap: 1, flex: 1 }}>
+          <TextField
+            placeholder="Name this meal (e.g. Breakfast)"
+            value={presetName}
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSavePreset(); } }}
+            sx={{ flex: 1 }}
+          />
+          {isMobile ? (
+            <IconButton
+              disabled={savingPreset}
+              onClick={handleSavePreset}
+              aria-label="Save as Quick Meal"
+              sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 0.75, color: 'text.secondary' }}
+            >
+              <BookmarkAddIcon fontSize="small" />
+            </IconButton>
+          ) : (
+            <Button variant="outlined" color="inherit" disabled={savingPreset} onClick={handleSavePreset} sx={{ color: 'text.secondary', borderColor: 'divider', whiteSpace: 'nowrap' }}>
+              Save as Quick Meal
+            </Button>
+          )}
+        </Box>
         <TextField
           type="date"
           value={fields.date}
           onChange={(e) => setField('date', e.target.value)}
           required
           InputLabelProps={{ shrink: true }}
-          sx={{ width: 150, ml: 2 }}
+          sx={{ width: { xs: '100%', sm: 150 }, ml: { xs: 0, sm: 2 } }}
         />
       </Box>
 

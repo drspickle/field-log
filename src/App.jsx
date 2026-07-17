@@ -150,19 +150,23 @@ export default function App() {
       ) : (
         <Box sx={{ maxWidth: 960, mx: 'auto', px: 2.5, pb: 7.5 }}>
           <Box component="header" sx={{ pt: 3.5, pb: 2.25, borderBottom: '1px solid', borderColor: 'divider', mb: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.75, gap: 1 }}>
               <Typography
                 sx={{
                   fontFamily: 'IBM Plex Mono, monospace',
-                  fontSize: 11,
-                  letterSpacing: 3,
+                  fontSize: { xs: 9, sm: 11 },
+                  letterSpacing: { xs: 1.5, sm: 3 },
                   color: 'primary.main',
                   textTransform: 'uppercase',
+                  minWidth: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
                 }}
               >
-                Brian Helton &middot; Personal Telemetry
+                Brian Helton <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>&middot; Personal Telemetry</Box>
               </Typography>
-              <Button size="small" variant="outlined" color="inherit" onClick={signOut} sx={{ fontSize: 10, color: 'text.secondary', borderColor: 'divider' }}>
+              <Button size="small" variant="outlined" color="inherit" onClick={signOut} sx={{ fontSize: 10, color: 'text.secondary', borderColor: 'divider', flexShrink: 0 }}>
                 Sign Out
               </Button>
             </Box>

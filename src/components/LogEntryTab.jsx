@@ -1,4 +1,9 @@
-import { Box, Typography, Button, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, Typography, Button, ToggleButtonGroup, ToggleButton, useMediaQuery, useTheme } from '@mui/material';
+import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
+import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
+import RestaurantIcon from '@mui/icons-material/Restaurant';
 import CardioForm from './forms/CardioForm';
 import StrengthForm from './forms/StrengthForm';
 import StrengthTestForm from './forms/StrengthTestForm';
@@ -6,14 +11,17 @@ import Vo2Form from './forms/Vo2Form';
 import DietForm from './forms/DietForm';
 
 const FORM_TYPES = [
-  { key: 'cardio', label: 'Cardio' },
-  { key: 'strength', label: 'Strength' },
-  { key: 'strength_test', label: 'Strength Test' },
-  { key: 'vo2max', label: 'VO2 Max' },
-  { key: 'diet', label: 'Diet' },
+  { key: 'cardio', label: 'Cardio', icon: DirectionsRunIcon },
+  { key: 'strength', label: 'Strength', icon: FitnessCenterIcon },
+  { key: 'strength_test', label: 'Strength Test', icon: EmojiEventsIcon },
+  { key: 'vo2max', label: 'VO2 Max', icon: MonitorHeartIcon },
+  { key: 'diet', label: 'Diet', icon: RestaurantIcon },
 ];
 
 export default function LogEntryTab({ formType, setFormType, editing, entries, diet, dietPresets, setDietPresets, commitEntry, cancelEdit }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
     <Box>
       {editing && (
@@ -46,16 +54,21 @@ export default function LogEntryTab({ formType, setFormType, editing, entries, d
         onChange={(_, v) => v && !editing && setFormType(v)}
         sx={{ display: 'flex', gap: 1, mb: 2.25 }}
       >
-        {FORM_TYPES.map((f) => (
-          <ToggleButton
-            key={f.key}
-            value={f.key}
-            disabled={!!editing && formType !== f.key}
-            sx={{ flex: 1, textTransform: 'uppercase', fontFamily: 'Oswald, sans-serif', fontSize: 12, letterSpacing: 1 }}
-          >
-            {f.label}
-          </ToggleButton>
-        ))}
+        {FORM_TYPES.map((f) => {
+          const Icon = f.icon;
+          return (
+            <ToggleButton
+              key={f.key}
+              value={f.key}
+              disabled={!!editing && formType !== f.key}
+              aria-label={f.label}
+              sx={{ flex: 1, minWidth: 0, px: isMobile ? 0.5 : 1.5, textTransform: 'uppercase', fontFamily: 'Oswald, sans-serif', fontSize: 12, letterSpacing: 1 }}
+            >
+              <Icon fontSize="small" sx={{ mr: isMobile ? 0 : 0.75 }} />
+              {!isMobile && f.label}
+            </ToggleButton>
+          );
+        })}
       </ToggleButtonGroup>
 
       {formType === 'cardio' && <CardioForm editing={editing} entries={entries} commitEntry={commitEntry} cancelEdit={cancelEdit} />}
