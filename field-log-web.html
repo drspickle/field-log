@@ -361,6 +361,7 @@
   }
   input:focus,select:focus,textarea:focus{border-color:var(--amber);}
   textarea{resize:vertical;min-height:60px;}
+  input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);}
   .submit-btn{
     background:var(--amber);
     color:#1b1000;
@@ -516,10 +517,10 @@
   }
 
   function rowToEntry(row){
-    return Object.assign({ id: row.id, type: row.type, date: row.date }, row.payload || {});
+    return Object.assign({ id: row.id, type: row.type, date: row.date, created_at: row.created_at }, row.payload || {});
   }
   function rowToDiet(row){
-    return Object.assign({ id: row.id, date: row.date }, row.payload || {});
+    return Object.assign({ id: row.id, date: row.date, created_at: row.created_at }, row.payload || {});
   }
   function entryToPayload(entry){
     var p = {};
@@ -1508,7 +1509,11 @@
     var el = document.getElementById('panel-history');
     var all = state.entries.map(function(e){ return Object.assign({ _kind: 'entry' }, e); })
       .concat(state.diet.map(function(e){ return Object.assign({ _kind: 'diet', type: 'diet' }, e); }));
-    all.sort(function(a,b){ return parseLocalDate(b.date) - parseLocalDate(a.date); });
+    all.sort(function(a,b){
+      var dateDiff = parseLocalDate(b.date) - parseLocalDate(a.date);
+      if(dateDiff !== 0) return dateDiff;
+      return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+    });
 
     var filterRow = '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px;">' +
       HISTORY_FILTERS.map(function(f){
