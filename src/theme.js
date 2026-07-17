@@ -24,6 +24,7 @@ const theme = createTheme({
     MuiCssBaseline: {
       styleOverrides: {
         body: { backgroundColor: '#14181b' },
+        'input[type="date"]::-webkit-calendar-picker-indicator': { filter: 'invert(1)' },
       },
     },
     MuiButton: {
