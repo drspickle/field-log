@@ -1,5 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/((?!api/|icons/|manifest\\.json).*)", "destination": "/field-log-web.html" }
-  ]
-}
