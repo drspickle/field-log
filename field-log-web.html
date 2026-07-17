@@ -375,6 +375,7 @@
     cursor:pointer;
     width:100%;
   }
+  .submit-btn:disabled{opacity:0.35;cursor:not-allowed;}
   .submit-btn:hover{background:#f0b158;}
   .save-msg{
     font-family:'IBM Plex Mono',monospace;
@@ -901,7 +902,7 @@
         labels: vo2.map(function(v){ return fmtDate(v.date); }),
         datasets: [{ label: 'VO2 Max', data: vo2.map(function(v){ return v.value; }), borderColor: '#e8a33d', backgroundColor: '#e8a33d', tension: 0.3, pointRadius: 4 }]
       },
-      options: chartOpts()
+      options: chartOptsVo2()
     });
 
     charts.strength = new Chart(document.getElementById('chart-strength'), {
@@ -939,6 +940,18 @@
       scales: {
         x: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } },
         y: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' }, beginAtZero: true }
+      }
+    };
+  }
+
+  function chartOptsVo2(){
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } },
+        y: { min: 45, max: 50, ticks: { stepSize: 0.5, color: '#8b9198', font: { family: 'IBM Plex Mono', size: 10 } }, grid: { color: '#2c3337' } }
       }
     };
   }
@@ -994,7 +1007,7 @@
           '<div><label>Calories</label><input type="number" name="calories"></div>' +
         '</div>' +
         '<div class="field-row"><div style="grid-column:1/-1"><label>Notes</label><textarea name="notes"></textarea></div></div>' +
-        '<button type="button" class="submit-btn" data-save="cardio">Log Cardio Session</button>' +
+        '<button type="button" class="submit-btn" data-save="cardio" disabled>Log Cardio Session</button>' +
         '<div class="save-msg" id="msg-cardio"></div>' +
       '</div>' +
 
@@ -1005,7 +1018,7 @@
           '<div><label>Focus</label><select name="focus"><option>Lower Body</option><option>Upper Body</option><option>Full Body</option><option>Stability</option></select></div>' +
         '</div>' +
         '<div class="field-row"><div style="grid-column:1/-1"><label>Notes (lifts, weights, reps)</label><textarea name="notes"></textarea></div></div>' +
-        '<button type="button" class="submit-btn" data-save="strength">Log Strength Session</button>' +
+        '<button type="button" class="submit-btn" data-save="strength" disabled>Log Strength Session</button>' +
         '<div class="save-msg" id="msg-strength"></div>' +
       '</div>' +
 
@@ -1016,7 +1029,7 @@
           '<div><label>Reps</label><input type="number" name="reps" required></div>' +
         '</div>' +
         '<div class="field-row"><div><label>Estimated 1RM</label><div class="card-value" id="live-1rm" style="font-size:20px;">&mdash;</div></div></div>' +
-        '<button type="button" class="submit-btn" data-save="strength_test">Log Strength Test</button>' +
+        '<button type="button" class="submit-btn" data-save="strength_test" disabled>Log Strength Test</button>' +
         '<div class="save-msg" id="msg-strength_test"></div>' +
       '</div>' +
 
@@ -1026,7 +1039,7 @@
           '<div><label>VO2 Max Reading</label><input type="number" step="0.1" name="value" required></div>' +
           '<div><label>Source</label><select name="source"><option>Apple Watch</option><option>Lab Test</option><option>Other</option></select></div>' +
         '</div>' +
-        '<button type="button" class="submit-btn" data-save="vo2max">Log VO2 Max</button>' +
+        '<button type="button" class="submit-btn" data-save="vo2max" disabled>Log VO2 Max</button>' +
         '<div class="save-msg" id="msg-vo2max"></div>' +
       '</div>' +
 
@@ -1037,17 +1050,15 @@
           '<div class="dz-sub">Estimates calories and protein automatically. Review before saving.</div>' +
           '<div class="dz-status" id="dz-status-diet"></div>' +
         '</div>' +
-        '<div class="field-row">' +
-          '<div><label>Date</label><input type="date" name="date" required></div>' +
-        '</div>' +
         '<div class="field-row"><div style="grid-column:1/-1">' +
           '<label>What did you eat</label>' +
           '<textarea name="food" placeholder="e.g. 3 eggs, 2 slices whole wheat toast, 1 tbsp butter, black coffee"></textarea>' +
         '</div></div>' +
         '<div id="preset-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;"></div>' +
-        '<div style="display:flex;gap:8px;margin-bottom:16px;">' +
+        '<div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;">' +
           '<input type="text" id="preset-name-input" placeholder="Name this meal (e.g. Breakfast)" style="flex:1;">' +
           '<button type="button" id="save-preset-btn" style="background:var(--panel-2);color:var(--text-dim);border:1px solid var(--line);border-radius:2px;padding:0 16px;font-family:\'Oswald\',sans-serif;font-size:12px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;white-space:nowrap;">Save as Quick Meal</button>' +
+          '<input type="date" name="date" required style="width:150px;margin-left:16px;">' +
         '</div>' +
         '<button type="button" class="submit-btn" id="estimate-diet-btn" style="background:var(--panel-2);color:var(--amber);border:1px solid var(--amber-dim);margin-bottom:16px;">Estimate Calories &amp; Protein</button>' +
         '<div class="dz-status" id="diet-estimate-status"></div>' +
@@ -1057,7 +1068,7 @@
           '<div><label>Protein (g)</label><input type="number" name="protein"></div>' +
         '</div>' +
         '<div class="field-row"><div style="grid-column:1/-1"><label>Notes (optional)</label><textarea name="notes"></textarea></div></div>' +
-        '<button type="button" class="submit-btn" data-save="diet">Log Diet Entry</button>' +
+        '<button type="button" class="submit-btn" data-save="diet" disabled>Log Diet Entry</button>' +
         '<div class="save-msg" id="msg-diet"></div>' +
       '</div>';
 
@@ -1105,6 +1116,20 @@
       }
     }
 
+    ['form-cardio','form-strength','form-strength_test','form-vo2max','form-diet'].forEach(function(id){
+      var container = document.getElementById(id);
+      container.addEventListener('input', function(){ refreshSaveButton(id); });
+      refreshSaveButton(id);
+    });
+
+    function refreshSaveButton(containerId){
+      var container = document.getElementById(containerId);
+      var saveBtn = container && container.querySelector('[data-save]');
+      if(!saveBtn) return;
+      var hasData = Array.prototype.some.call(container.querySelectorAll('input:not([name="date"]), textarea'), function(el){ return el.value.trim() !== ''; });
+      saveBtn.disabled = !hasData;
+    }
+
     function fieldVal(container, name){
       var el = container.querySelector('[name="' + name + '"]');
       return el ? el.value : '';
@@ -1134,7 +1159,7 @@
       };
       commitEntry('entries', entry).then(function(wasEditing){
         if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
-        else { flashMsg('cardio','Saved.'); clearFields(c); renderHeaderStats(); }
+        else { flashMsg('cardio','Saved.'); clearFields(c); renderHeaderStats(); refreshSaveButton('form-cardio'); }
       }).catch(function(){ flashMsg('cardio','Save failed, try again.', true); });
     });
 
@@ -1147,7 +1172,7 @@
       };
       commitEntry('entries', entry).then(function(wasEditing){
         if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
-        else { flashMsg('strength','Saved.'); clearFields(c); renderHeaderStats(); }
+        else { flashMsg('strength','Saved.'); clearFields(c); renderHeaderStats(); refreshSaveButton('form-strength'); }
       }).catch(function(){ flashMsg('strength','Save failed, try again.', true); });
     });
 
@@ -1168,7 +1193,7 @@
       };
       commitEntry('entries', entry).then(function(wasEditing){
         if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
-        else { flashMsg('strength_test','Saved.'); clearFields(stForm); updateLiveRM(); renderHeaderStats(); }
+        else { flashMsg('strength_test','Saved.'); clearFields(stForm); updateLiveRM(); renderHeaderStats(); refreshSaveButton('form-strength_test'); }
       }).catch(function(){ flashMsg('strength_test','Save failed, try again.', true); });
     });
 
@@ -1178,7 +1203,7 @@
       var entry = { type: 'vo2max', date: fieldVal(c,'date'), value: fieldVal(c,'value'), source: fieldVal(c,'source') };
       commitEntry('entries', entry).then(function(wasEditing){
         if(wasEditing){ state.activeTab = 'history'; updateTabs(); }
-        else { flashMsg('vo2max','Saved.'); clearFields(c); renderHeaderStats(); }
+        else { flashMsg('vo2max','Saved.'); clearFields(c); renderHeaderStats(); refreshSaveButton('form-vo2max'); }
       }).catch(function(){ flashMsg('vo2max','Save failed, try again.', true); });
     });
 
@@ -1194,6 +1219,7 @@
           document.getElementById('diet-breakdown').innerHTML = '';
           document.getElementById('diet-estimate-status').textContent = '';
           renderHeaderStats();
+          refreshSaveButton('form-diet');
         }
       }).catch(function(){ flashMsg('diet','Save failed, try again.', true); });
     });
@@ -1522,6 +1548,7 @@
           '<div class="entry-detail">' + detail + '</div>' +
         '</div>' +
         '<div class="entry-date">' + fmtDate(e.date) + '</div>' +
+        (e._kind === 'diet' ? '<button class="del-btn" data-duplicate="' + e.id + '" style="margin-right:6px;">Duplicate</button>' : '') +
         '<button class="del-btn" data-edit="' + e.id + '" data-kind="' + e._kind + '" style="margin-right:6px;">Edit</button>' +
         '<button class="del-btn" data-del="' + e.id + '" data-kind="' + e._kind + '">Delete</button>' +
       '</div>';
@@ -1537,6 +1564,20 @@
     el.querySelectorAll('[data-edit]').forEach(function(btn){
       btn.addEventListener('click', function(){
         startEdit(btn.getAttribute('data-kind'), btn.getAttribute('data-edit'));
+      });
+    });
+
+    el.querySelectorAll('[data-duplicate]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var id = btn.getAttribute('data-duplicate');
+        var original = state.diet.find(function(e){ return e.id === id; });
+        if(!original) return;
+        btn.disabled = true;
+        insertDiet(localDateStr(), { food: original.food, calories: original.calories, protein: original.protein, notes: original.notes }).then(function(newRow){
+          state.diet.push(newRow);
+          renderHistory();
+          renderHeaderStats();
+        }).catch(function(){ btn.disabled = false; });
       });
     });
 
