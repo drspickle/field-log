@@ -8,6 +8,9 @@ import MonitorHeartIcon from '@mui/icons-material/MonitorHeart';
 import {
   DndContext,
   closestCenter,
+  pointerWithin,
+  rectIntersection,
+  getFirstCollision,
   PointerSensor,
   KeyboardSensor,
   useSensor,
@@ -144,6 +147,31 @@ export default function PlanTab({ planChips, setPlanChips }) {
     return null;
   }
 
+  // Resolve which container the pointer is actually within first (pointerWithin, falling
+  // back to rectIntersection), then - if that resolves to a container rather than a specific
+  // chip - refine to the closest chip inside that container. Plain closestCenter alone measures
+  // raw distance to every droppable's center regardless of containment, which mis-highlights
+  // and mis-drops onto unrelated rows once a container is mostly empty.
+  function collisionDetectionStrategy(args) {
+    const pointerIntersections = pointerWithin(args);
+    const intersections = pointerIntersections.length > 0 ? pointerIntersections : rectIntersection(args);
+    let overId = getFirstCollision(intersections, 'id');
+
+    if (overId != null) {
+      const containerItems = containers[overId];
+      if (containerItems && containerItems.length > 0) {
+        const itemIds = new Set(containerItems.map((c) => c.id));
+        const closest = closestCenter({
+          ...args,
+          droppableContainers: args.droppableContainers.filter((dc) => itemIds.has(dc.id)),
+        });
+        overId = closest[0]?.id ?? overId;
+      }
+      return [{ id: overId }];
+    }
+    return [];
+  }
+
   async function handleDragEnd({ active, over }) {
     setActiveId(null);
     if (!over) return;
@@ -201,7 +229,7 @@ export default function PlanTab({ planChips, setPlanChips }) {
     <Box>
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetectionStrategy}
         onDragStart={({ active }) => setActiveId(active.id)}
         onDragCancel={() => setActiveId(null)}
         onDragEnd={handleDragEnd}
