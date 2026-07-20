@@ -5,6 +5,7 @@ import AuthGate from './components/AuthGate';
 import HeaderStats from './components/HeaderStats';
 import OverviewTab from './components/OverviewTab';
 import LogEntryTab from './components/LogEntryTab';
+import PlanTab from './components/PlanTab';
 import HistoryTab from './components/HistoryTab';
 import {
   supabase,
@@ -24,6 +25,7 @@ export default function App() {
   const [entries, setEntries] = useState([]);
   const [diet, setDiet] = useState([]);
   const [dietPresets, setDietPresets] = useState([]);
+  const [planChips, setPlanChips] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
   const [formType, setFormType] = useState('cardio');
   const [editing, setEditing] = useState(null); // { arr: 'entries'|'diet', id }
@@ -41,6 +43,7 @@ export default function App() {
         setEntries([]);
         setDiet([]);
         setDietPresets([]);
+        setPlanChips([]);
       }
     });
     return () => subscription.unsubscribe();
@@ -48,10 +51,11 @@ export default function App() {
 
   useEffect(() => {
     if (session) {
-      loadAllData().then(({ entries: e, diet: d, dietPresets: p }) => {
+      loadAllData().then(({ entries: e, diet: d, dietPresets: p, planChips: c }) => {
         setEntries(e);
         setDiet(d);
         setDietPresets(p);
+        setPlanChips(c);
       });
     }
   }, [session]);
@@ -183,6 +187,7 @@ export default function App() {
           >
             <Tab label="Overview" value="overview" sx={{ minHeight: 'auto', py: 1.25 }} />
             <Tab label="Log Entry" value="log" sx={{ minHeight: 'auto', py: 1.25 }} />
+            <Tab label="Plan" value="plan" sx={{ minHeight: 'auto', py: 1.25 }} />
             <Tab label="History" value="history" sx={{ minHeight: 'auto', py: 1.25 }} />
           </Tabs>
 
@@ -200,6 +205,7 @@ export default function App() {
               cancelEdit={cancelEdit}
             />
           )}
+          {activeTab === 'plan' && <PlanTab planChips={planChips} setPlanChips={setPlanChips} />}
           {activeTab === 'history' && (
             <HistoryTab
               entries={entries}
