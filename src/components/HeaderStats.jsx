@@ -32,7 +32,7 @@ export default function HeaderStats({ stats }) {
   return (
     <Box sx={{ display: 'flex', flexWrap: 'wrap', border: '1px solid', borderColor: 'divider', borderRadius: 0.75, overflow: 'hidden' }}>
       <Cell
-        label="Zone 2 Min (7d)"
+        label="Zone 2 Min (Wk)"
         value={stats.zone2Minutes}
         trend={<Trend current={stats.zone2Minutes} priorAvg={stats.zone2Trend} />}
         borderRight

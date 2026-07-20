@@ -17,10 +17,6 @@ export function daysAgo(n) {
   return d;
 }
 
-export function isWithinDays(dateStr, n) {
-  return parseLocalDate(dateStr) >= daysAgo(n);
-}
-
 export function isToday(dateStr) {
   const d = parseLocalDate(dateStr);
   const t = new Date();
@@ -32,9 +28,13 @@ export function fmtDate(dateStr) {
   return (d.getMonth() + 1) + '/' + d.getDate();
 }
 
-export function weekLabel(offset) {
-  const d = daysAgo(offset * 7);
-  return (d.getMonth() + 1) + '/' + d.getDate();
+// Monday (midnight) of the calendar week containing `date`.
+export function startOfWeek(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  const day = d.getDay(); // 0=Sun..6=Sat
+  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
+  return d;
 }
 
 export function epley1RM(weight, reps) {
@@ -61,10 +61,13 @@ export function dailyDietTotals(diet) {
 }
 
 export function weeklyZone2Series(entries, weeks) {
+  const currentWeekStart = startOfWeek(new Date());
   const buckets = [];
   for (let i = weeks - 1; i >= 0; i--) {
-    const start = daysAgo((i + 1) * 7 - 1);
-    const end = daysAgo(i * 7 - 1);
+    const start = new Date(currentWeekStart);
+    start.setDate(start.getDate() - i * 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
     const total = entries
       .filter((e) => {
         const d = parseLocalDate(e.date);
@@ -75,37 +78,42 @@ export function weeklyZone2Series(entries, weeks) {
         if (avg >= 127 && avg <= 154) return sum + (parseFloat(e.duration) || 0);
         return sum;
       }, 0);
-    buckets.push({ label: weekLabel(i), value: Math.round(total) });
+    buckets.push({ label: (start.getMonth() + 1) + '/' + start.getDate(), value: Math.round(total) });
   }
   return buckets;
 }
 
-// Trend baselines compare "current" to the average of the prior 30 days, per metric:
-// - Zone 2 is a 7-day rolling total, so its baseline is the average weekly rate over the
-//   30 days *before* the current 7-day window (comparable units).
+// Trend baselines compare "current" to a prior average, per metric:
+// - Zone 2 is a calendar-week total (Monday-start), so its baseline is the average
+//   weekly total over the 4 completed calendar weeks before this one (comparable units).
 // - VO2/1RM are sparse point-in-time tests, so the baseline is the average of prior
 //   readings (excluding the latest) logged in the last 30 real days.
 // - Calories/protein are daily totals, so the baseline is the average daily total over
 //   the 30 days before today.
 export function computeStats(entries, diet) {
+  const currentWeekStart = startOfWeek(new Date());
   const zone2Minutes = entries
-    .filter((e) => e.type === 'cardio' && isWithinDays(e.date, 7))
+    .filter((e) => e.type === 'cardio' && parseLocalDate(e.date) >= currentWeekStart)
     .reduce((sum, e) => {
       const avg = parseFloat(e.avgHR);
       if (avg >= 127 && avg <= 154) return sum + (parseFloat(e.duration) || 0);
       return sum;
     }, 0);
+  // Baseline: average weekly total over the 4 completed calendar weeks before this one.
+  const PRIOR_WEEKS = 4;
+  const priorWeeksStart = new Date(currentWeekStart);
+  priorWeeksStart.setDate(priorWeeksStart.getDate() - PRIOR_WEEKS * 7);
   const priorZone2Total = entries
     .filter((e) => {
       const d = parseLocalDate(e.date);
-      return e.type === 'cardio' && d >= daysAgo(37) && d < daysAgo(7);
+      return e.type === 'cardio' && d >= priorWeeksStart && d < currentWeekStart;
     })
     .reduce((sum, e) => {
       const avg = parseFloat(e.avgHR);
       if (avg >= 127 && avg <= 154) return sum + (parseFloat(e.duration) || 0);
       return sum;
     }, 0);
-  const zone2Trend = priorZone2Total > 0 ? priorZone2Total / (30 / 7) : null;
+  const zone2Trend = priorZone2Total > 0 ? priorZone2Total / PRIOR_WEEKS : null;
 
   const vo2Entries = entries
     .filter((e) => e.type === 'vo2max')
