@@ -46,7 +46,9 @@ module.exports = async function handler(req, res) {
   });
 
   if (!anthropicRes.ok) {
-    res.status(502).json({ error: 'Anthropic API error' });
+    const errText = await anthropicRes.text();
+    console.error('Anthropic API error', anthropicRes.status, errText);
+    res.status(502).json({ error: 'Anthropic API error', status: anthropicRes.status, detail: errText });
     return;
   }
 
