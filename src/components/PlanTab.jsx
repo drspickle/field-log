@@ -96,16 +96,17 @@ function PlanChip({ id, chipType }) {
   );
 }
 
-function DroppableRow({ id, minHeight, empty, children }) {
+function DroppableRow({ id, minHeight, empty, column, children }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   return (
     <Box
       ref={setNodeRef}
       sx={{
         display: 'flex',
-        flexWrap: 'wrap',
+        flexDirection: column ? 'column' : 'row',
+        flexWrap: column ? 'nowrap' : 'wrap',
+        alignItems: column ? 'stretch' : 'center',
         gap: 1,
-        alignItems: 'center',
         minHeight,
         p: 1,
         borderRadius: 0.75,
@@ -234,38 +235,45 @@ export default function PlanTab({ planChips, setPlanChips }) {
         onDragCancel={() => setActiveId(null)}
         onDragEnd={handleDragEnd}
       >
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.25 }}>
-          <Typography sx={{ fontFamily: 'Oswald, sans-serif', fontSize: 15, letterSpacing: 1.5, textTransform: 'uppercase' }}>
-            Available
-          </Typography>
-          <Button size="small" variant="outlined" color="inherit" onClick={handleReset} sx={{ color: 'text.secondary', borderColor: 'divider' }}>
-            Reset Plan
-          </Button>
-        </Box>
-
-        <SortableContext items={containers.pool.map((c) => c.id)} strategy={rectSortingStrategy}>
-          <DroppableRow id="pool" minHeight={56} empty={containers.pool.length === 0 ? 'All chips placed.' : null}>
-            {containers.pool.map((chip) => (
-              <PlanChip key={chip.id} id={chip.id} chipType={chip.chipType} />
-            ))}
-          </DroppableRow>
-        </SortableContext>
-
-        <Box sx={{ mt: 3 }}>
-          {DAYS.map((day) => (
-            <Box key={day.key} sx={{ mb: 1.5 }}>
-              <Typography sx={{ fontSize: 11, letterSpacing: 1, color: 'text.secondary', textTransform: 'uppercase', mb: 0.5 }}>
-                {day.label}
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: { xs: 3, md: 4 }, alignItems: 'start' }}>
+          <Box>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.75 }}>
+              <Typography sx={{ fontFamily: 'Oswald, sans-serif', fontSize: 15, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                Week
               </Typography>
-              <SortableContext items={containers[day.key].map((c) => c.id)} strategy={rectSortingStrategy}>
-                <DroppableRow id={day.key} minHeight={48}>
-                  {containers[day.key].map((chip) => (
-                    <PlanChip key={chip.id} id={chip.id} chipType={chip.chipType} />
-                  ))}
-                </DroppableRow>
-              </SortableContext>
+              <Button size="small" variant="outlined" color="inherit" onClick={handleReset} sx={{ color: 'text.secondary', borderColor: 'divider' }}>
+                Reset Plan
+              </Button>
             </Box>
-          ))}
+
+            {DAYS.map((day) => (
+              <Box key={day.key} sx={{ mb: 1.5 }}>
+                <Typography sx={{ fontSize: 11, letterSpacing: 1, color: 'text.secondary', textTransform: 'uppercase', mb: 0.5 }}>
+                  {day.label}
+                </Typography>
+                <SortableContext items={containers[day.key].map((c) => c.id)} strategy={rectSortingStrategy}>
+                  <DroppableRow id={day.key} minHeight={48}>
+                    {containers[day.key].map((chip) => (
+                      <PlanChip key={chip.id} id={chip.id} chipType={chip.chipType} />
+                    ))}
+                  </DroppableRow>
+                </SortableContext>
+              </Box>
+            ))}
+          </Box>
+
+          <Box>
+            <Typography sx={{ fontFamily: 'Oswald, sans-serif', fontSize: 15, letterSpacing: 1.5, textTransform: 'uppercase', mb: 1.75 }}>
+              Available
+            </Typography>
+            <SortableContext items={containers.pool.map((c) => c.id)} strategy={rectSortingStrategy}>
+              <DroppableRow id="pool" minHeight={56} column empty={containers.pool.length === 0 ? 'All chips placed.' : null}>
+                {containers.pool.map((chip) => (
+                  <PlanChip key={chip.id} id={chip.id} chipType={chip.chipType} />
+                ))}
+              </DroppableRow>
+            </SortableContext>
+          </Box>
         </Box>
 
         <DragOverlay>{activeChip ? <ChipVisual chipType={activeChip.chipType} dragging /> : null}</DragOverlay>

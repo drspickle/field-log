@@ -183,12 +183,29 @@ export default function App() {
           <Tabs
             value={activeTab}
             onChange={(_, v) => setActiveTab(v)}
+            variant="fullWidth"
             sx={{ mb: 3, borderBottom: '1px solid', borderColor: 'divider', minHeight: 'auto' }}
           >
-            <Tab label="Overview" value="overview" sx={{ minHeight: 'auto', py: 1.25 }} />
-            <Tab label="Log Entry" value="log" sx={{ minHeight: 'auto', py: 1.25 }} />
-            <Tab label="Plan" value="plan" sx={{ minHeight: 'auto', py: 1.25 }} />
-            <Tab label="History" value="history" sx={{ minHeight: 'auto', py: 1.25 }} />
+            {[
+              { label: 'Overview', value: 'overview' },
+              { label: 'Log Entry', value: 'log' },
+              { label: 'Plan', value: 'plan' },
+              { label: 'History', value: 'history' },
+            ].map((t) => (
+              <Tab
+                key={t.value}
+                label={t.label}
+                value={t.value}
+                sx={{
+                  minHeight: 'auto',
+                  minWidth: 0,
+                  px: { xs: 0.5, sm: 2 },
+                  py: 1.25,
+                  fontSize: { xs: 10.5, sm: 13 },
+                  letterSpacing: { xs: 0.5, sm: 1.5 },
+                }}
+              />
+            ))}
           </Tabs>
 
           {activeTab === 'overview' && <OverviewTab entries={entries} stats={stats} />}
