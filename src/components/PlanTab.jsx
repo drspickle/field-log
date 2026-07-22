@@ -58,10 +58,10 @@ function ChipVisual({ chipType, dragging }) {
   return (
     <Box
       sx={{
-        display: 'inline-flex',
+        display: 'flex',
         alignItems: 'center',
-        gap: 0.6,
-        px: 1.25,
+        gap: 0.5,
+        px: { xs: 0.75, sm: 1.25 },
         py: 0.6,
         borderRadius: 14,
         border: '1px solid',
@@ -69,13 +69,13 @@ function ChipVisual({ chipType, dragging }) {
         color: meta.color,
         backgroundColor: 'background.paper',
         fontFamily: 'IBM Plex Mono, monospace',
-        fontSize: 12,
-        whiteSpace: 'nowrap',
+        fontSize: { xs: 10, sm: 12 },
+        lineHeight: 1.2,
         boxShadow: dragging ? '0 4px 12px rgba(0,0,0,0.4)' : 'none',
       }}
     >
-      <Icon sx={{ fontSize: 15 }} />
-      {meta.label}
+      <Icon sx={{ fontSize: { xs: 13, sm: 15 }, flexShrink: 0 }} />
+      <Box component="span">{meta.label}</Box>
     </Box>
   );
 }
@@ -235,13 +235,19 @@ export default function PlanTab({ planChips, setPlanChips }) {
         onDragCancel={() => setActiveId(null)}
         onDragEnd={handleDragEnd}
       >
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: { xs: 3, md: 4 }, alignItems: 'start' }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 96px', sm: '1fr 140px', md: '2fr 1fr' }, gap: { xs: 1.25, sm: 2, md: 4 }, alignItems: 'start' }}>
           <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.75 }}>
-              <Typography sx={{ fontFamily: 'Oswald, sans-serif', fontSize: 15, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+              <Typography sx={{ fontFamily: 'Oswald, sans-serif', fontSize: { xs: 13, sm: 15 }, letterSpacing: 1.5, textTransform: 'uppercase' }}>
                 Week
               </Typography>
-              <Button size="small" variant="outlined" color="inherit" onClick={handleReset} sx={{ color: 'text.secondary', borderColor: 'divider' }}>
+              <Button
+                size="small"
+                variant="outlined"
+                color="inherit"
+                onClick={handleReset}
+                sx={{ color: 'text.secondary', borderColor: 'divider', fontSize: { xs: 10, sm: 13 }, px: { xs: 1, sm: 2 }, minWidth: 0, whiteSpace: 'nowrap' }}
+              >
                 Reset Plan
               </Button>
             </Box>
@@ -263,7 +269,7 @@ export default function PlanTab({ planChips, setPlanChips }) {
           </Box>
 
           <Box>
-            <Typography sx={{ fontFamily: 'Oswald, sans-serif', fontSize: 15, letterSpacing: 1.5, textTransform: 'uppercase', mb: 1.75 }}>
+            <Typography sx={{ fontFamily: 'Oswald, sans-serif', fontSize: { xs: 13, sm: 15 }, letterSpacing: 1.5, textTransform: 'uppercase', mb: 1.75 }}>
               Available
             </Typography>
             <SortableContext items={containers.pool.map((c) => c.id)} strategy={rectSortingStrategy}>
